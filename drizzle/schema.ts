@@ -112,6 +112,68 @@ export const notifications = pgTable("notifications", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const postTagEnum = pgEnum("post_tag", [
+  "Case Study",
+  "Article",
+  "Update",
+  "Photo",
+]);
+
+export const posts = pgTable("posts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  authorId: text("author_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  tag: postTagEnum("tag").notNull(),
+  body: text("body").notNull(),
+  imageUrl: text("image_url"),
+  likeCount: integer("like_count").default(0),
+  commentCount: integer("comment_count").default(0),
+  saveCount: integer("save_count").default(0),
+  repostCount: integer("repost_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const likes = pgTable("likes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  postId: uuid("post_id")
+    .notNull()
+    .references(() => posts.id, { onDelete: "cascade" }),
+  doctorId: text("doctor_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const comments = pgTable("comments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  postId: uuid("post_id")
+    .notNull()
+    .references(() => posts.id, { onDelete: "cascade" }),
+  authorId: text("author_id").notNull(),
+  content: text("content").notNull(),
+  parentId: uuid("parent_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const saves = pgTable("saves", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  postId: uuid("post_id")
+    .notNull()
+    .references(() => posts.id, { onDelete: "cascade" }),
+  doctorId: text("doctor_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const reposts = pgTable("reposts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  originalPostId: uuid("original_post_id")
+    .notNull()
+    .references(() => posts.id, { onDelete: "cascade" }),
+  doctorId: text("doctor_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const conversations = pgTable("conversations", {
   id: uuid("id").defaultRandom().primaryKey(),
   doctorOneId: text("doctor_one_id").notNull(),

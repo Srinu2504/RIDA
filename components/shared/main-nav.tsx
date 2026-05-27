@@ -4,7 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { IconBell, IconMessage, IconSearch, IconUsers } from "@tabler/icons-react";
+import {
+  IconBell,
+  IconBookmark,
+  IconMessage,
+  IconSearch,
+  IconUsers,
+} from "@tabler/icons-react";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { pusherClient } from "@/lib/pusher";
 
@@ -75,6 +81,13 @@ export function MainNav() {
                 {unread > 99 ? "99+" : unread}
               </span>
             )}
+          </Link>
+          <Link
+            href="/saved"
+            className="relative text-white/80 transition-colors hover:text-white"
+            aria-label="Saved posts"
+          >
+            <IconBookmark size={19} stroke={1.5} />
           </Link>
           <Link
             href="/connections"
