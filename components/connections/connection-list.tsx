@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/shared/user-avatar";
@@ -24,6 +25,7 @@ interface ConnectionItem {
 type Tab = "pending" | "connected";
 
 export function ConnectionList() {
+  const router = useRouter();
   const [items, setItems] = useState<ConnectionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("pending");
@@ -145,7 +147,31 @@ export function ConnectionList() {
                   </div>
                 )}
                 {tab === "connected" && (
-                  <Button variant="cream" className="w-full" disabled>
+                  <Button
+                    variant="cream"
+                    className="w-full"
+                    onClick={async () => {
+                      try {
+                        const res = await fetch("/api/conversations/start", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            targetDoctorId: item.otherUser.id,
+                          }),
+                        });
+                        const json = await res.json();
+                        if (!res.ok) {
+                          toast.error(
+                            json.error ?? "Connect with this doctor to message them"
+                          );
+                          return;
+                        }
+                        router.push(`/messages?conversation=${json.conversationId}`);
+                      } catch {
+                        toast.error("Failed to start conversation");
+                      }
+                    }}
+                  >
                     Message
                   </Button>
                 )}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import toast from "react-hot-toast";
 import {
@@ -43,6 +44,7 @@ interface ProfileData {
 
 export function DoctorProfileView({ userId }: { userId: string }) {
   const { data: session } = useSession();
+  const router = useRouter();
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
@@ -97,6 +99,7 @@ export function DoctorProfileView({ userId }: { userId: string }) {
   const limited = profile.limited;
   const name = `Dr. ${profile.firstName} ${profile.lastName}`;
   const isSelf = session?.user?.id === userId;
+  const isConnected = data.connectionStatus === "ACCEPTED";
   const location = [profile.city, profile.state, profile.country]
     .filter(Boolean)
     .join(", ");
@@ -136,23 +139,50 @@ export function DoctorProfileView({ userId }: { userId: string }) {
           </div>
 
           {!isSelf && !limited && (
-            <Button
-              variant={
-                data.connectionStatus === "ACCEPTED" ? "cream" : "outline"
-              }
-              disabled={
-                connecting ||
-                data.connectionStatus === "PENDING" ||
-                data.connectionStatus === "ACCEPTED"
-              }
-              onClick={handleConnect}
-            >
-              {data.connectionStatus === "ACCEPTED"
-                ? "Connected"
-                : data.connectionStatus === "PENDING"
-                  ? "Pending"
-                  : "Connect"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={isConnected ? "cream" : "outline"}
+                disabled={connecting || data.connectionStatus === "PENDING" || isConnected}
+                onClick={handleConnect}
+              >
+                {isConnected
+                  ? "Connected"
+                  : data.connectionStatus === "PENDING"
+                    ? "Pending"
+                    : "Connect"}
+              </Button>
+
+              <Button
+                variant="cream"
+                title={
+                  isConnected
+                    ? ""
+                    : "Connect with this doctor to message them"
+                }
+                disabled={!isConnected}
+                onClick={async () => {
+                  try {
+                    const res = await fetch("/api/conversations/start", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ targetDoctorId: userId }),
+                    });
+                    const json = await res.json();
+                    if (!res.ok) {
+                      toast.error(
+                        json.error ?? "Connect with this doctor to message them"
+                      );
+                      return;
+                    }
+                    router.push(`/messages?conversation=${json.conversationId}`);
+                  } catch {
+                    toast.error("Failed to start conversation");
+                  }
+                }}
+              >
+                Message
+              </Button>
+            </div>
           )}
         </div>
 

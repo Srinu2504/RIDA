@@ -2,13 +2,36 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { IconBell, IconSearch, IconUsers } from "@tabler/icons-react";
+import { IconBell, IconMessage, IconSearch, IconUsers } from "@tabler/icons-react";
 import { UserAvatar } from "@/components/shared/user-avatar";
+import { pusherClient } from "@/lib/pusher";
 
 export function MainNav() {
   const router = useRouter();
   const { data: session } = useSession();
+  const [unread, setUnread] = useState(0);
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    const userId = session.user.id;
+
+    const load = async () => {
+      const res = await fetch("/api/conversations");
+      const json = await res.json();
+      if (res.ok) setUnread(Number(json.totalUnread ?? 0));
+    };
+
+    load().catch(() => {});
+
+    const channel = pusherClient.subscribe(`user-${userId}`);
+    channel.bind("unread-update", () => load().catch(() => {}));
+
+    return () => {
+      pusherClient.unsubscribe(`user-${userId}`);
+    };
+  }, [session?.user?.id]);
 
   return (
     <header className="sticky top-0 z-50 h-14 bg-green-primary">
@@ -41,6 +64,18 @@ export function MainNav() {
         </div>
 
         <div className="ml-auto flex items-center gap-4">
+          <Link
+            href="/messages"
+            className="relative text-white/80 transition-colors hover:text-white"
+            aria-label="Messages"
+          >
+            <IconMessage size={19} stroke={1.5} />
+            {unread > 0 && (
+              <span className="absolute -right-1.5 -top-1.5 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-cream-surface px-1 text-[10px] font-extrabold text-green-primary">
+                {unread > 99 ? "99+" : unread}
+              </span>
+            )}
+          </Link>
           <Link
             href="/connections"
             className="relative text-white/80 transition-colors hover:text-white"
