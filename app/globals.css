@@ -1,0 +1,86 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --cream-bg: #f2ede3;
+    --cream-surface: #faf6ef;
+    --cream-border: #e0d8c8;
+    --cream-divider: #ece5d8;
+    --cream-input: #f2ede3;
+
+    --green-primary: #2d6a4f;
+    --green-light: #d8ede0;
+    --green-pale: #eaf2ec;
+    --green-muted: #6b8c75;
+
+    --text-dark: #1a2e1e;
+    --text-mid: #3a3028;
+    --text-muted: #a09070;
+    --text-faint: #b8a888;
+
+    --accent-amber: #f9a825;
+  }
+
+  * {
+    border-color: var(--cream-border);
+  }
+
+  body {
+    @apply bg-cream-bg font-sans text-text-mid antialiased;
+    font-weight: 400;
+    line-height: 1.6;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-extrabold text-text-dark;
+    font-weight: 800;
+  }
+}
+
+@layer components {
+  .rida-card {
+    @apply rounded-xl border-[0.5px] border-cream-border bg-cream-surface;
+    box-shadow: none;
+  }
+
+  .rida-input {
+    @apply rounded-lg border-[0.5px] border-[#d8d0c0] bg-cream-input px-3.5 py-2 text-xs text-text-mid;
+    @apply focus:border-green-primary focus:outline-none;
+  }
+
+  .rida-input-pill {
+    @apply rounded-[20px];
+  }
+
+  .rida-btn-primary {
+    @apply inline-flex items-center justify-center rounded-lg bg-green-primary px-[18px] py-2 text-xs font-semibold text-cream-surface;
+    @apply transition-colors hover:bg-[#245a42] disabled:cursor-not-allowed disabled:bg-cream-border disabled:text-text-muted;
+  }
+
+  .rida-btn-outline {
+    @apply inline-flex items-center justify-center rounded-lg border-[1.5px] border-green-primary bg-transparent px-[18px] py-2 text-xs font-semibold text-green-primary;
+    @apply transition-colors hover:bg-green-pale disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .rida-btn-danger {
+    @apply inline-flex items-center justify-center rounded-lg border border-[#c0392b] bg-transparent px-[18px] py-2 text-xs font-semibold text-[#c0392b];
+    @apply transition-colors hover:bg-[#fdecea];
+  }
+
+  .rida-tag {
+    @apply inline-block rounded-[10px] px-2 py-0.5 text-[10px] font-semibold;
+  }
+
+  .rida-avatar {
+    @apply flex items-center justify-center bg-green-light font-bold text-green-primary;
+  }
+
+  .rida-notif-dot {
+    @apply absolute -right-0.5 -top-px h-[7px] w-[7px] rounded-full bg-accent-amber;
+  }
+}
