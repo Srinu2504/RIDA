@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { pusherClient } from "@/lib/pusher";
+import { getPusherClient } from "@/lib/pusher";
 
 export interface AppNotification {
   id: string;
@@ -25,6 +25,8 @@ export function useNotifications(userId: string) {
 
   useEffect(() => {
     if (!userId) return;
+    const pusherClient = getPusherClient();
+    if (!pusherClient) return;
 
     fetch("/api/notifications/unread-count")
       .then((r) => r.json())

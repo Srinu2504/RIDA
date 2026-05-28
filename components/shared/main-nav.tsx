@@ -12,7 +12,7 @@ import {
 } from "@tabler/icons-react";
 import { Bell } from "lucide-react";
 import { UserAvatar } from "@/components/shared/user-avatar";
-import { pusherClient } from "@/lib/pusher";
+import { getPusherClient } from "@/lib/pusher";
 import { useNotifications } from "@/hooks/useNotifications";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 
@@ -31,6 +31,8 @@ export function MainNav() {
   useEffect(() => {
     if (!session?.user?.id) return;
     const userId = session.user.id;
+    const pusherClient = getPusherClient();
+    if (!pusherClient) return;
 
     const load = async () => {
       const res = await fetch("/api/conversations");

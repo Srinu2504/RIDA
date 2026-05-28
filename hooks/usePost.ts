@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { pusherClient } from "@/lib/pusher";
+import { getPusherClient } from "@/lib/pusher";
 
 export interface PostRealtimeComment {
   id: string;
@@ -19,6 +19,8 @@ export function usePost(
 ) {
   useEffect(() => {
     if (!postId) return;
+    const pusherClient = getPusherClient();
+    if (!pusherClient) return;
     const channel = pusherClient.subscribe(`post-${postId}`);
     channel.bind("like-updated", callbacks.onLikeUpdated);
     channel.bind("new-comment", ({ comment }: { comment: PostRealtimeComment }) =>
