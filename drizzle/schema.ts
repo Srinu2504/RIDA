@@ -183,10 +183,10 @@ export const notifications = pgTable("notifications", {
   id: text("id")
     .primaryKey()
     .$defaultFn(() => createId()),
-  recipientId: text("user_id")
+  recipientId: text("recipient_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  actorId: text("related_user_id")
+  actorId: text("actor_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   type: text("type").notNull(),
