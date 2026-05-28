@@ -105,7 +105,7 @@ export async function GET() {
           };
         })
         .filter(Boolean),
-    ].sort((a, b) => +new Date(b.sortAt) - +new Date(a.sortAt));
+      ].sort((a, b) => +new Date(b?.sortAt ?? 0) - +new Date(a?.sortAt ?? 0));
 
     return NextResponse.json({ items: feedItems });
   } catch (error) {
