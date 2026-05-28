@@ -6,6 +6,8 @@ import { requireSession } from "@/lib/session";
 import { connectionActionSchema } from "@/lib/validations";
 import { createNotification } from "@/lib/notifications";
 
+export const dynamic = 'force-dynamic';
+
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
