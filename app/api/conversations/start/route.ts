@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { connections, conversations } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
 
+export const dynamic = "force-dynamic";
+
 function orderedPair(a: string, b: string) {
   return a < b ? [a, b] : [b, a];
 }

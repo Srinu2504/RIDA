@@ -5,6 +5,8 @@ import { otpTokens, users } from "@/drizzle/schema";
 import { verifyOTP } from "@/lib/otp";
 import { verifyOtpSchema } from "@/lib/validations";
 
+export const dynamic = "force-dynamic";
+
 const MAX_ATTEMPTS = 3;
 
 export async function POST(req: Request) {

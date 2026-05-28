@@ -5,6 +5,8 @@ import { conversations } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
 import { pusherServer } from "@/lib/pusher";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: Request) {
   try {
     const session = await requireSession();

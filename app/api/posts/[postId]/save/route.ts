@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { posts, saves } from "@/drizzle/schema";
 import { requireDoctorSession } from "@/lib/feed-utils";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(
   _req: Request,
   { params }: { params: { postId: string } }

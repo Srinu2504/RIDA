@@ -6,6 +6,8 @@ import { requireDoctorSession } from "@/lib/feed-utils";
 import { pusherServer } from "@/lib/pusher";
 import { createNotification } from "@/lib/notifications";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   _req: Request,
   { params }: { params: { postId: string } }

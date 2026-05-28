@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { notifications } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
 
+export const dynamic = "force-dynamic";
+
 export async function PATCH(
   _req: Request,
   { params }: { params: { id: string } }

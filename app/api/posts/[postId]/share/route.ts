@@ -5,6 +5,8 @@ import { posts, reposts } from "@/drizzle/schema";
 import { requireDoctorSession } from "@/lib/feed-utils";
 import { createNotification } from "@/lib/notifications";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(
   req: Request,
   { params }: { params: { postId: string } }

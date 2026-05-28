@@ -6,6 +6,8 @@ import { requireSession } from "@/lib/session";
 import { pusherServer } from "@/lib/pusher";
 import { createNotification } from "@/lib/notifications";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: Request) {
   try {
     const session = await requireSession();

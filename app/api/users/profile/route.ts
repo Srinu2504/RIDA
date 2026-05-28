@@ -5,6 +5,8 @@ import { doctorProfiles, users } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
 import { doctorProfileSchema, formatZodErrors } from "@/lib/validations";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: Request) {
   try {
     const session = await requireSession();

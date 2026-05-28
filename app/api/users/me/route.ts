@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { doctorProfiles, users } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const session = await requireSession();

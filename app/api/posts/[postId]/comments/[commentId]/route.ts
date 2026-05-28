@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { comments, posts } from "@/drizzle/schema";
 import { requireDoctorSession } from "@/lib/feed-utils";
 
+export const dynamic = "force-dynamic";
+
 export async function PATCH(
   req: Request,
   { params }: { params: { postId: string; commentId: string } }

@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { connections, conversations, doctorProfiles, messages } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
 
+export const dynamic = "force-dynamic";
+
 function pairKey(a: string, b: string) {
   return a < b ? [a, b] : [b, a];
 }

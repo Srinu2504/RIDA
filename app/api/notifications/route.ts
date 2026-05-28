@@ -5,6 +5,8 @@ import { doctorProfiles, notifications, users } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
 import { getNotificationIcon, getNotificationLink, getNotificationText } from "@/lib/notification-text";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(req: Request) {
   try {
     const session = await requireSession();

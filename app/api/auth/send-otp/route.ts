@@ -7,6 +7,8 @@ import { generateOTP, hashOTP } from "@/lib/otp";
 import { sendOTPEmail } from "@/lib/resend";
 import { signupSchema } from "@/lib/validations";
 
+export const dynamic = "force-dynamic";
+
 const isDev = process.env.NODE_ENV === "development";
 
 export async function POST(req: Request) {

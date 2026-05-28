@@ -12,6 +12,8 @@ import {
 } from "@/drizzle/schema";
 import { requireDoctorSession } from "@/lib/feed-utils";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const session = await requireDoctorSession();

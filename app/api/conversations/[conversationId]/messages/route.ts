@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { conversations, messages } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(
   req: Request,
   { params }: { params: { conversationId: string } }
