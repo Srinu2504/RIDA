@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { comments, doctorProfiles, posts, users } from "@/drizzle/schema";
 import { requireDoctorSession } from "@/lib/feed-utils";
 import { pusherServer } from "@/lib/pusher";
+import { createNotification } from "@/lib/notifications";
 
 export async function GET(
   _req: Request,
@@ -89,7 +90,11 @@ export async function POST(
       return NextResponse.json({ error: "Max 500 characters" }, { status: 400 });
     }
 
-    const [post] = await db.select({ id: posts.id }).from(posts).where(eq(posts.id, postId)).limit(1);
+    const [post] = await db
+      .select({ id: posts.id, authorId: posts.authorId })
+      .from(posts)
+      .where(eq(posts.id, postId))
+      .limit(1);
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
@@ -131,6 +136,32 @@ export async function POST(
     await pusherServer.trigger(`post-${postId}`, "new-comment", {
       comment: fullComment,
     });
+
+    if (parentId) {
+      const [parentComment] = await db
+        .select({ authorId: comments.authorId })
+        .from(comments)
+        .where(eq(comments.id, parentId))
+        .limit(1);
+
+      if (parentComment) {
+        await createNotification({
+          recipientId: parentComment.authorId,
+          actorId: session.user.id,
+          type: "reply",
+          postId,
+          commentId: created.id,
+        });
+      }
+    } else {
+      await createNotification({
+        recipientId: post.authorId,
+        actorId: session.user.id,
+        type: "comment",
+        postId,
+        commentId: created.id,
+      });
+    }
 
     return NextResponse.json({ comment: fullComment }, { status: 201 });
   } catch (error) {

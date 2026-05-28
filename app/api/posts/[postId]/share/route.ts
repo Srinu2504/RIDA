@@ -3,6 +3,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { posts, reposts } from "@/drizzle/schema";
 import { requireDoctorSession } from "@/lib/feed-utils";
+import { createNotification } from "@/lib/notifications";
 
 export async function POST(
   req: Request,
@@ -54,6 +55,12 @@ export async function POST(
       .update(posts)
       .set({ repostCount: sql`${posts.repostCount} + 1` })
       .where(eq(posts.id, postId));
+    await createNotification({
+      recipientId: post.authorId,
+      actorId: userId,
+      type: "repost",
+      postId,
+    });
 
     return NextResponse.json({ reposted: true });
   } catch (error) {

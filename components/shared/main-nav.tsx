@@ -5,19 +5,28 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
-  IconBell,
   IconBookmark,
   IconMessage,
   IconSearch,
   IconUsers,
 } from "@tabler/icons-react";
+import { Bell } from "lucide-react";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { pusherClient } from "@/lib/pusher";
+import { useNotifications } from "@/hooks/useNotifications";
+import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 
 export function MainNav() {
   const router = useRouter();
   const { data: session } = useSession();
   const [unread, setUnread] = useState(0);
+  const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const {
+    unreadCount: notifUnread,
+    notifications,
+    setNotifications,
+    setUnreadCount,
+  } = useNotifications(session?.user?.id ?? "");
 
   useEffect(() => {
     if (!session?.user?.id) return;
@@ -38,6 +47,17 @@ export function MainNav() {
       pusherClient.unsubscribe(`user-${userId}`);
     };
   }, [session?.user?.id]);
+
+  useEffect(() => {
+    if (!showNotifDropdown || !session?.user?.id) return;
+    fetch("/api/notifications?page=1&limit=5")
+      .then((r) => r.json())
+      .then((d) => {
+        setNotifications(d.notifications ?? []);
+        setUnreadCount(d.unreadCount ?? 0);
+      })
+      .catch(() => {});
+  }, [showNotifDropdown, session?.user?.id, setNotifications, setUnreadCount]);
 
   return (
     <header className="sticky top-0 z-50 h-14 bg-green-primary">
@@ -89,20 +109,42 @@ export function MainNav() {
           >
             <IconBookmark size={19} stroke={1.5} />
           </Link>
+          <div className="relative">
+            <button
+              type="button"
+              className="relative text-white/80 transition-colors hover:text-white"
+              aria-label="Notifications"
+              onClick={() => setShowNotifDropdown((x) => !x)}
+            >
+              <Bell size={19} />
+              {notifUnread > 0 && (
+                <span className="absolute -right-2 -top-2 flex min-h-[20px] min-w-[20px] items-center justify-center rounded-full bg-[#ef4444] px-1 text-[10px] font-bold text-white">
+                  {notifUnread > 99 ? "99+" : notifUnread}
+                </span>
+              )}
+            </button>
+            <NotificationDropdown
+              open={showNotifDropdown}
+              onClose={() => setShowNotifDropdown(false)}
+              notifications={notifications}
+              onMarkedRead={(id) => {
+                setNotifications((prev) =>
+                  prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+                );
+                setUnreadCount((prev) => Math.max(0, prev - 1));
+              }}
+              onMarkAllRead={() => {
+                setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+                setUnreadCount(0);
+              }}
+            />
+          </div>
           <Link
             href="/connections"
             className="relative text-white/80 transition-colors hover:text-white"
             aria-label="Network"
           >
             <IconUsers size={19} stroke={1.5} />
-            <span className="rida-notif-dot" />
-          </Link>
-          <Link
-            href="/notifications"
-            className="relative text-white/80 transition-colors hover:text-white"
-            aria-label="Alerts"
-          >
-            <IconBell size={19} stroke={1.5} />
             <span className="rida-notif-dot" />
           </Link>
           {session?.user && (

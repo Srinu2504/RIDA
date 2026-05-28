@@ -97,21 +97,6 @@ export const connections = pgTable("connections", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const notifications = pgTable("notifications", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => createId()),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id),
-  type: text("type").notNull(),
-  message: text("message").notNull(),
-  relatedUserId: text("related_user_id"),
-  connectionId: text("connection_id"),
-  isRead: boolean("is_read").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
 export const postTagEnum = pgEnum("post_tag", [
   "Case Study",
   "Article",
@@ -189,6 +174,31 @@ export const messages = pgTable("messages", {
     .references(() => conversations.id, { onDelete: "cascade" }),
   senderId: text("sender_id").notNull(),
   content: text("content").notNull(),
+  isRead: boolean("is_read").default(false),
+  readAt: timestamp("read_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const notifications = pgTable("notifications", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => createId()),
+  recipientId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  actorId: text("related_user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  type: text("type").notNull(),
+  message: text("message").notNull().default(""),
+  postId: uuid("post_id").references(() => posts.id, { onDelete: "cascade" }),
+  commentId: uuid("comment_id").references(() => comments.id, {
+    onDelete: "cascade",
+  }),
+  conversationId: uuid("conversation_id").references(() => conversations.id, {
+    onDelete: "cascade",
+  }),
+  connectionId: text("connection_id"),
   isRead: boolean("is_read").default(false),
   readAt: timestamp("read_at"),
   createdAt: timestamp("created_at").defaultNow(),

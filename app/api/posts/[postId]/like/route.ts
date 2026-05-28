@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { likes, posts } from "@/drizzle/schema";
 import { requireDoctorSession } from "@/lib/feed-utils";
 import { pusherServer } from "@/lib/pusher";
+import { createNotification } from "@/lib/notifications";
 
 export async function POST(
   _req: Request,
@@ -14,7 +15,11 @@ export async function POST(
     const userId = session.user.id;
     const { postId } = params;
 
-    const [post] = await db.select({ id: posts.id }).from(posts).where(eq(posts.id, postId)).limit(1);
+    const [post] = await db
+      .select({ id: posts.id, authorId: posts.authorId })
+      .from(posts)
+      .where(eq(posts.id, postId))
+      .limit(1);
     if (!post) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
@@ -54,6 +59,14 @@ export async function POST(
       likedBy: userId,
       action: liked ? "liked" : "unliked",
     });
+    if (liked) {
+      await createNotification({
+        recipientId: post.authorId,
+        actorId: userId,
+        type: "like",
+        postId,
+      });
+    }
 
     return NextResponse.json({ liked, likeCount });
   } catch (error) {

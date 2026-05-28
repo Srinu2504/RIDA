@@ -13,11 +13,11 @@ export async function PATCH(
 
     const [updated] = await db
       .update(notifications)
-      .set({ isRead: true })
+      .set({ isRead: true, readAt: new Date() })
       .where(
         and(
           eq(notifications.id, params.id),
-          eq(notifications.userId, session.user.id)
+          eq(notifications.recipientId, session.user.id)
         )
       )
       .returning();

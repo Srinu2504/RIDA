@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { and, eq, or } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { connections, doctorProfiles, notifications, users } from "@/drizzle/schema";
+import { connections, doctorProfiles, users } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
+import { createNotification } from "@/lib/notifications";
 
 export async function GET() {
   try {
@@ -130,11 +131,10 @@ export async function POST(req: Request) {
       .values({ senderId, receiverId, status: "PENDING" })
       .returning();
 
-    await db.insert(notifications).values({
-      userId: receiverId,
-      type: "CONNECTION_REQUEST",
-      message: `${session.user.fullName} sent you a connection request`,
-      relatedUserId: senderId,
+    await createNotification({
+      recipientId: receiverId,
+      actorId: senderId,
+      type: "connection_request",
       connectionId: connection.id,
     });
 

@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { connections, notifications, users } from "@/drizzle/schema";
+import { connections, users } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
 import { connectionActionSchema } from "@/lib/validations";
+import { createNotification } from "@/lib/notifications";
 
 export async function PATCH(
   req: Request,
@@ -46,20 +47,14 @@ export async function PATCH(
       .set({ status, updatedAt: new Date() })
       .where(eq(connections.id, params.id));
 
-    const type =
-      status === "ACCEPTED" ? "CONNECTION_ACCEPTED" : "CONNECTION_REJECTED";
-    const message =
-      status === "ACCEPTED"
-        ? `${session.user.fullName} accepted your connection request`
-        : `${session.user.fullName} declined your connection request`;
-
-    await db.insert(notifications).values({
-      userId: connection.senderId,
-      type,
-      message,
-      relatedUserId: session.user.id,
-      connectionId: connection.id,
-    });
+    if (status === "ACCEPTED") {
+      await createNotification({
+        recipientId: connection.senderId,
+        actorId: session.user.id,
+        type: "connection_accepted",
+        connectionId: connection.id,
+      });
+    }
 
     return NextResponse.json({ connection: { ...connection, status } });
   } catch {
