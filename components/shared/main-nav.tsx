@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import {
   IconBookmark,
   IconMessage,
@@ -21,6 +21,7 @@ export function MainNav() {
   const { data: session } = useSession();
   const [unread, setUnread] = useState(0);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const {
     unreadCount: notifUnread,
     notifications,
@@ -150,14 +151,46 @@ export function MainNav() {
             <span className="rida-notif-dot" />
           </Link>
           {session?.user && (
-            <Link href={`/profile/${session.user.id}`}>
-              <UserAvatar
-                name={session.user.fullName}
-                size={32}
-                square
-                className="!rounded-lg !bg-cream-surface !text-green-primary"
-              />
-            </Link>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowUserMenu((x) => !x)}
+                className="rounded-lg"
+                aria-label="User menu"
+              >
+                <UserAvatar
+                  name={session.user.fullName}
+                  size={32}
+                  square
+                  className="!rounded-lg !bg-cream-surface !text-green-primary"
+                />
+              </button>
+              {showUserMenu && (
+                <div className="absolute right-0 top-10 z-50 w-40 rounded-xl border border-[#e5ddd0] bg-[#faf6ef] py-1 text-[#1a1a1a]">
+                  <Link
+                    href="/profile"
+                    className="block px-3 py-2 text-xs hover:bg-[#f2ede3]"
+                    onClick={() => setShowUserMenu(false)}
+                  >
+                    View Profile
+                  </Link>
+                  <Link
+                    href="/settings"
+                    className="block px-3 py-2 text-xs hover:bg-[#f2ede3]"
+                    onClick={() => setShowUserMenu(false)}
+                  >
+                    Settings
+                  </Link>
+                  <button
+                    type="button"
+                    className="block w-full px-3 py-2 text-left text-xs text-[#ef4444] hover:bg-[#f2ede3]"
+                    onClick={() => signOut({ callbackUrl: "/signin" })}
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
