@@ -11,6 +11,7 @@ export interface AppNotification {
   text: string;
   icon: string;
   link: string;
+  connectionId?: string | null;
   actor?: {
     id: string;
     name: string;

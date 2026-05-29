@@ -43,20 +43,24 @@ export async function createNotification(params: CreateNotificationParams) {
     .where(eq(users.id, params.actorId))
     .limit(1);
 
-  await pusherServer.trigger(`user-${params.recipientId}`, "new-notification", {
-    notification: {
-      ...notification,
-      actor: actor
-        ? {
-            id: actor.id,
-            name: actor.fullName,
-            avatar: actor.avatar,
-            specialty: actor.specialty,
-          }
-        : null,
-      text: getNotificationText(params.type, actor?.fullName ?? "Someone"),
-    },
-  });
+  try {
+    await pusherServer.trigger(`user-${params.recipientId}`, "new-notification", {
+      notification: {
+        ...notification,
+        actor: actor
+          ? {
+              id: actor.id,
+              name: actor.fullName,
+              avatar: actor.avatar,
+              specialty: actor.specialty,
+            }
+          : null,
+        text: getNotificationText(params.type, actor?.fullName ?? "Someone"),
+      },
+    });
+  } catch (err) {
+    console.error("[createNotification] Pusher trigger failed:", err);
+  }
 
   return notification;
 }

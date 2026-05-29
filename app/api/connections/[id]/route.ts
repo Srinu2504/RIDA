@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { connections, users } from "@/drizzle/schema";
+import { connections } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
 import { connectionActionSchema } from "@/lib/validations";
 import { createNotification } from "@/lib/notifications";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function PATCH(
   req: Request,
@@ -14,6 +14,12 @@ export async function PATCH(
 ) {
   try {
     const session = await requireSession();
+    const connectionId = params.id;
+
+    if (!connectionId) {
+      return NextResponse.json({ error: "Connection id required" }, { status: 400 });
+    }
+
     const body = await req.json();
     const parsed = connectionActionSchema.safeParse(body);
 
@@ -26,7 +32,7 @@ export async function PATCH(
     const [connection] = await db
       .select()
       .from(connections)
-      .where(eq(connections.id, params.id))
+      .where(eq(connections.id, connectionId))
       .limit(1);
 
     if (!connection) {
@@ -34,7 +40,10 @@ export async function PATCH(
     }
 
     if (connection.receiverId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Only the recipient can accept or decline this request" },
+        { status: 403 }
+      );
     }
 
     if (connection.status !== "PENDING") {
@@ -44,22 +53,35 @@ export async function PATCH(
       );
     }
 
-    await db
+    const [updated] = await db
       .update(connections)
       .set({ status, updatedAt: new Date() })
-      .where(eq(connections.id, params.id));
+      .where(eq(connections.id, connectionId))
+      .returning();
 
-    if (status === "ACCEPTED") {
-      await createNotification({
-        recipientId: connection.senderId,
-        actorId: session.user.id,
-        type: "connection_accepted",
-        connectionId: connection.id,
-      });
+    if (!updated) {
+      return NextResponse.json({ error: "Failed to update connection" }, { status: 500 });
     }
 
-    return NextResponse.json({ connection: { ...connection, status } });
-  } catch {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (status === "ACCEPTED") {
+      try {
+        await createNotification({
+          recipientId: connection.senderId,
+          actorId: session.user.id,
+          type: "connection_accepted",
+          connectionId: connection.id,
+        });
+      } catch (err) {
+        console.error("[connections PATCH] notification failed:", err);
+      }
+    }
+
+    return NextResponse.json({ connection: updated });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    console.error("[connections PATCH]", error);
+    return NextResponse.json({ error: "Failed to update connection" }, { status: 500 });
   }
 }

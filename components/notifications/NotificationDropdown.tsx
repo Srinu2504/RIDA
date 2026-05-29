@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { UserAvatar } from "@/components/shared/user-avatar";
+import { ConnectionRequestActions } from "@/components/connections/connection-request-actions";
 import { type AppNotification } from "@/hooks/useNotifications";
 
 function formatTime(date: string) {
@@ -75,41 +76,64 @@ export function NotificationDropdown({
           </p>
         )}
 
-        {latest.map((n) => (
-          <button
-            key={n.id}
-            type="button"
-            onClick={async () => {
-              if (!n.isRead) {
-                await fetch("/api/notifications/read", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ notificationId: n.id }),
-                });
-                onMarkedRead(n.id);
-              }
-              onClose();
-              router.push(n.link);
-            }}
-            className={`w-full border-b border-[#e5ddd0] px-3 py-3 text-left ${
-              n.isRead
-                ? "bg-[#faf6ef]"
-                : "border-l-4 border-l-[#2d6a4f] bg-[#f0f7f4]"
-            }`}
-          >
-            <div className="flex items-start gap-2">
-              <UserAvatar
-                name={n.actor?.name ?? "User"}
-                src={n.actor?.avatar}
-                size={28}
-              />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs text-text-mid">{n.text}</p>
-                <p className="text-[10px] text-text-muted">{formatTime(n.createdAt)}</p>
+        {latest.map((n) => {
+          const isConnectionRequest =
+            n.type === "connection_request" && n.connectionId;
+
+          return (
+            <div
+              key={n.id}
+              className={`border-b border-[#e5ddd0] px-3 py-3 ${
+                n.isRead
+                  ? "bg-[#faf6ef]"
+                  : "border-l-4 border-l-[#2d6a4f] bg-[#f0f7f4]"
+              }`}
+            >
+              <div className="flex items-start gap-2">
+                <UserAvatar
+                  name={n.actor?.name ?? "User"}
+                  src={n.actor?.avatar}
+                  size={28}
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-text-mid">{n.text}</p>
+                  <p className="text-[10px] text-text-muted">
+                    {formatTime(n.createdAt)}
+                  </p>
+                </div>
+                {isConnectionRequest ? (
+                  <ConnectionRequestActions
+                    connectionId={n.connectionId!}
+                    notificationId={n.id}
+                    onDone={() => {
+                      onMarkedRead(n.id);
+                      onClose();
+                    }}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="shrink-0 text-[10px] font-semibold text-green-primary"
+                    onClick={async () => {
+                      if (!n.isRead) {
+                        await fetch("/api/notifications/read", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ notificationId: n.id }),
+                        });
+                        onMarkedRead(n.id);
+                      }
+                      onClose();
+                      router.push(n.link);
+                    }}
+                  >
+                    View
+                  </button>
+                )}
               </div>
             </div>
-          </button>
-        ))}
+          );
+        })}
       </div>
 
       <Link

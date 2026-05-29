@@ -10,6 +10,7 @@ import { formatProfileName } from "@/lib/user-display";
 import { RoleLabel } from "@/components/shared/role-label";
 import { cn } from "@/lib/utils";
 import { useMessagingStore } from "@/lib/stores/messaging-store";
+import { respondToConnection } from "@/lib/connection-actions";
 
 interface ConnectionItem {
   id: string;
@@ -30,13 +31,14 @@ export function ConnectionList() {
   const [items, setItems] = useState<ConnectionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("pending");
+  const [actingId, setActingId] = useState<string | null>(null);
 
   const load = async () => {
-    setLoading(true);
     try {
-      const res = await fetch("/api/connections");
+      const res = await fetch("/api/connections", { cache: "no-store" });
       const json = await res.json();
       if (res.ok) setItems(json.connections);
+      else toast.error(json.error ?? "Failed to load connections");
     } catch {
       toast.error("Failed to load connections");
     } finally {
@@ -49,20 +51,21 @@ export function ConnectionList() {
   }, []);
 
   const handleAction = async (id: string, status: "ACCEPTED" | "REJECTED") => {
+    setActingId(id);
     try {
-      const res = await fetch(`/api/connections/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      if (!res.ok) {
-        toast.error("Action failed");
-        return;
-      }
+      await respondToConnection(id, status);
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === id ? { ...item, status } : item
+        )
+      );
       toast.success(status === "ACCEPTED" ? "Connected!" : "Request declined");
-      load();
-    } catch {
-      toast.error("Action failed");
+      if (status === "ACCEPTED") setTab("connected");
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Action failed");
+    } finally {
+      setActingId(null);
     }
   };
 
@@ -124,6 +127,7 @@ export function ConnectionList() {
                   item.profile.lastName
                 )
               : item.otherUser.fullName;
+            const busy = actingId === item.id;
 
             return (
               <div key={item.id} className="rida-card flex flex-col gap-3 p-4">
@@ -152,17 +156,21 @@ export function ConnectionList() {
                 {tab === "pending" && (
                   <div className="flex gap-2">
                     <Button
+                      type="button"
                       className="flex-1"
+                      disabled={busy}
                       onClick={() => handleAction(item.id, "ACCEPTED")}
                     >
-                      Accept
+                      {busy ? "Accepting…" : "Accept"}
                     </Button>
                     <Button
+                      type="button"
                       variant="danger"
                       className="flex-1"
+                      disabled={busy}
                       onClick={() => handleAction(item.id, "REJECTED")}
                     >
-                      Decline
+                      {busy ? "…" : "Decline"}
                     </Button>
                   </div>
                 )}
@@ -173,6 +181,7 @@ export function ConnectionList() {
                 )}
                 {tab === "connected" && (
                   <Button
+                    type="button"
                     variant="cream"
                     className="w-full"
                     onClick={async () => {
@@ -187,7 +196,8 @@ export function ConnectionList() {
                         const json = await res.json();
                         if (!res.ok) {
                           toast.error(
-                            json.error ?? "Connect with this doctor to message them"
+                            json.error ??
+                              "Connect with this doctor to message them"
                           );
                           return;
                         }
