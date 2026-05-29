@@ -15,9 +15,10 @@ export const useSignupStore = create<SignupState>()(
     (set) => ({
       email: "",
       fullName: "",
-      role: "DOCTOR",
+      role: "PRACTICING_PHYSICIAN",
       setSignupData: (data) => set(data),
-      clear: () => set({ email: "", fullName: "", role: "DOCTOR" }),
+      clear: () =>
+        set({ email: "", fullName: "", role: "PRACTICING_PHYSICIAN" }),
     }),
     { name: "rida-signup" }
   )

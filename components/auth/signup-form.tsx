@@ -16,6 +16,27 @@ import { cn } from "@/lib/utils";
 
 type SignupForm = z.infer<typeof signupSchema>;
 
+const ROLE_OPTIONS = [
+  {
+    value: "MEDICAL_STUDENT" as const,
+    icon: "🎓",
+    title: "Medical Student",
+    description: "Currently in medical school or residency",
+  },
+  {
+    value: "PRACTICING_PHYSICIAN" as const,
+    icon: "👨‍⚕️",
+    title: "Practicing Physician",
+    description: "Currently practicing medicine",
+  },
+  {
+    value: "RETIRED_PHYSICIAN" as const,
+    icon: "🏅",
+    title: "Retired Physician",
+    description: "Formerly practiced medicine",
+  },
+];
+
 export function SignupForm() {
   const router = useRouter();
   const setSignupData = useSignupStore((s) => s.setSignupData);
@@ -29,7 +50,7 @@ export function SignupForm() {
     formState: { errors },
   } = useForm<SignupForm>({
     resolver: zodResolver(signupSchema),
-    defaultValues: { role: "DOCTOR" },
+    defaultValues: { role: "PRACTICING_PHYSICIAN" },
   });
 
   const role = watch("role");
@@ -116,23 +137,34 @@ export function SignupForm() {
           </div>
           <div>
             <Label>I am a</Label>
-            <div className="mt-2 grid grid-cols-2 gap-2">
-              {(["DOCTOR", "PATIENT"] as const).map((r) => (
+            <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
+              {ROLE_OPTIONS.map((option) => (
                 <button
-                  key={r}
+                  key={option.value}
                   type="button"
-                  onClick={() => setValue("role", r)}
+                  onClick={() => setValue("role", option.value)}
                   className={cn(
-                    "rounded-lg py-3 text-xs font-semibold transition-colors",
-                    role === r
-                      ? "bg-green-primary text-cream-surface"
-                      : "border-[0.5px] border-cream-border bg-cream-input text-text-mid hover:bg-green-pale"
+                    "rounded-xl p-4 text-left transition",
+                    role === option.value
+                      ? "border-2 border-[#2d6a4f] bg-[#f0f7f4]"
+                      : "border border-[#e5ddd0] bg-[#faf6ef] hover:bg-[#f0f7f4]"
                   )}
                 >
-                  {r === "DOCTOR" ? "Doctor" : "Patient / Other"}
+                  <span className="text-2xl">{option.icon}</span>
+                  <p className="mt-2 text-xs font-bold text-[#1a1a1a]">
+                    {option.title}
+                  </p>
+                  <p className="mt-1 text-[10px] text-text-muted">
+                    {option.description}
+                  </p>
                 </button>
               ))}
             </div>
+            {errors.role && (
+              <p className="mt-1 text-[10px] text-[#c0392b]">
+                {errors.role.message}
+              </p>
+            )}
           </div>
           <div>
             <Label htmlFor="password">Password</Label>

@@ -9,7 +9,11 @@ import {
 } from "drizzle-orm/pg-core";
 import { createId } from "@paralleldrive/cuid2";
 
-export const roleEnum = pgEnum("role", ["DOCTOR", "PATIENT"]);
+export const roleEnum = pgEnum("role", [
+  "MEDICAL_STUDENT",
+  "PRACTICING_PHYSICIAN",
+  "RETIRED_PHYSICIAN",
+]);
 export const connectionStatusEnum = pgEnum("connection_status", [
   "PENDING",
   "ACCEPTED",
@@ -28,7 +32,7 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
   fullName: text("full_name").notNull(),
-  role: roleEnum("role").default("DOCTOR").notNull(),
+  role: roleEnum("role").default("PRACTICING_PHYSICIAN").notNull(),
   isEmailVerified: boolean("is_email_verified").default(false).notNull(),
   isProfileComplete: boolean("is_profile_complete").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

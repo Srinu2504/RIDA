@@ -9,6 +9,19 @@ export const dynamic = "force-dynamic";
 
 const MAX_ATTEMPTS = 3;
 
+function getRoleRedirect(role: string) {
+  switch (role) {
+    case "MEDICAL_STUDENT":
+      return "/setup-profile/student";
+    case "PRACTICING_PHYSICIAN":
+      return "/setup-profile/physician";
+    case "RETIRED_PHYSICIAN":
+      return "/setup-profile/retired";
+    default:
+      return "/setup-profile/physician";
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -87,13 +100,14 @@ export async function POST(req: Request) {
       fullName: token.fullName,
       role: token.role,
       isEmailVerified: true,
-      isProfileComplete: token.role === "PATIENT",
+      isProfileComplete: false,
     });
 
     await db.delete(otpTokens).where(eq(otpTokens.id, token.id));
 
     return NextResponse.json({
       message: "Email verified. You can now sign in.",
+      redirectTo: getRoleRedirect(token.role),
     });
   } catch (error) {
     console.error("[verify-otp]", error);

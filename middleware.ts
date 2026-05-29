@@ -8,16 +8,18 @@ export default withAuth(
 
     if (!token) return NextResponse.next();
 
-    const isDoctor = token.role === "DOCTOR";
     const profileComplete = token.isProfileComplete;
+    const role = token.role as string;
 
-    if (
-      isDoctor &&
-      !profileComplete &&
-      !pathname.startsWith("/setup-profile") &&
-      !pathname.startsWith("/api")
-    ) {
-      return NextResponse.redirect(new URL("/setup-profile", req.url));
+    if (!profileComplete && !pathname.startsWith("/api")) {
+      let setupPath = "/setup-profile/physician";
+      if (role === "MEDICAL_STUDENT") setupPath = "/setup-profile/student";
+      if (role === "PRACTICING_PHYSICIAN") setupPath = "/setup-profile/physician";
+      if (role === "RETIRED_PHYSICIAN") setupPath = "/setup-profile/retired";
+
+      if (!pathname.startsWith(setupPath)) {
+        return NextResponse.redirect(new URL(setupPath, req.url));
+      }
     }
 
     if (

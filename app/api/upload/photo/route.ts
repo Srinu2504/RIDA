@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/session";
 import { uploadProfilePhoto } from "@/lib/cloudinary";
+import { isClinicalRole } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,7 @@ export async function POST(req: Request) {
   try {
     const session = await requireSession();
 
-    if (session.user.role !== "DOCTOR") {
+    if (!isClinicalRole(session.user.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { doctorProfiles, users } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
 import { doctorProfileSchema, formatZodErrors } from "@/lib/validations";
+import { isClinicalRole } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export async function POST(req: Request) {
   try {
     const session = await requireSession();
 
-    if (session.user.role !== "DOCTOR") {
+    if (!isClinicalRole(session.user.role)) {
       return NextResponse.json(
         { error: "Only doctors can create a profile" },
         { status: 403 }

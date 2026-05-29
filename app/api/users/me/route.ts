@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { doctorProfiles, users } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
+import { isClinicalRole } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export async function GET() {
     }
 
     let profile = null;
-    if (user.role === "DOCTOR") {
+    if (isClinicalRole(user.role)) {
       const [doctorProfile] = await db
         .select()
         .from(doctorProfiles)

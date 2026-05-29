@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, eq, gte, ilike, or } from "drizzle-orm";
+import { and, eq, gte, ilike, inArray, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { connections, doctorProfiles, users } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
@@ -20,7 +20,7 @@ export async function GET(req: Request) {
     const gender = searchParams.get("gender");
 
     const conditions = [
-      eq(users.role, "DOCTOR"),
+      inArray(users.role, ["PRACTICING_PHYSICIAN", "RETIRED_PHYSICIAN"]),
       eq(users.isProfileComplete, true),
     ];
 

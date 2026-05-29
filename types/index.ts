@@ -1,6 +1,13 @@
 import type { DefaultSession } from "next-auth";
 
-export type Role = "DOCTOR" | "PATIENT";
+export type Role =
+  | "MEDICAL_STUDENT"
+  | "PRACTICING_PHYSICIAN"
+  | "RETIRED_PHYSICIAN";
+
+export function isClinicalRole(role: Role | string) {
+  return role === "PRACTICING_PHYSICIAN" || role === "RETIRED_PHYSICIAN";
+}
 export type ConnectionStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "BLOCKED";
 export type ProfileVisibility = "PUBLIC" | "CONNECTIONS_ONLY";
 

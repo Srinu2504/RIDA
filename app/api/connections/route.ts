@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { connections, doctorProfiles, users } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
 import { createNotification } from "@/lib/notifications";
+import { isClinicalRole } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -97,7 +98,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-  if (receiver.role !== "DOCTOR") {
+  if (!isClinicalRole(receiver.role)) {
       return NextResponse.json(
         { error: "You can only connect with doctors" },
         { status: 400 }

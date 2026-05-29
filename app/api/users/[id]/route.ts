@@ -7,6 +7,7 @@ import {
   users,
 } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
+import { isClinicalRole } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ export async function GET(
       .where(eq(users.id, targetId))
       .limit(1);
 
-    if (!targetUser || targetUser.role !== "DOCTOR") {
+    if (!targetUser || !isClinicalRole(targetUser.role)) {
       return NextResponse.json({ error: "Doctor not found" }, { status: 404 });
     }
 
