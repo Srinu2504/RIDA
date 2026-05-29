@@ -2,6 +2,7 @@ import { AppUserProvider } from "@/components/shared/user-context";
 import { getSession } from "@/lib/session";
 import { MainNav } from "@/components/shared/main-nav";
 import { BottomNav } from "@/components/shared/bottom-nav";
+import { MessagingWidget } from "@/components/messaging/messaging-widget";
 
 export default async function MainLayout({
   children,
@@ -15,9 +16,10 @@ export default async function MainLayout({
 
   return (
     <AppUserProvider user={user}>
-      <div className="min-h-screen bg-cream-bg pb-16 md:pb-0">
+      <div className="min-h-screen bg-[#f4f2ee] pb-16 md:pb-0">
         <MainNav />
         {children}
+        <MessagingWidget />
         <BottomNav />
       </div>
     </AppUserProvider>

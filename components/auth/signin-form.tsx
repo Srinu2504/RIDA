@@ -12,6 +12,7 @@ import type { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { AuthBackLink } from "@/components/auth/auth-back-link";
 
 type SigninForm = z.infer<typeof signinSchema>;
 
@@ -57,6 +58,7 @@ export function SigninForm() {
 
   return (
     <div className="w-full max-w-[440px]">
+      <AuthBackLink href="/" label="Home" />
       <h1 className="mb-6 text-center text-[22px] font-extrabold text-green-primary">
         RIDA
       </h1>

@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   connections,
   doctorProfiles,
+  posts,
   users,
 } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
-import { isClinicalRole } from "@/types";
+import { countAcceptedConnections } from "@/lib/connection-stats";
+import { canCreateDoctorProfile } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -31,8 +33,8 @@ export async function GET(
       .where(eq(users.id, targetId))
       .limit(1);
 
-    if (!targetUser || !isClinicalRole(targetUser.role)) {
-      return NextResponse.json({ error: "Doctor not found" }, { status: 404 });
+    if (!targetUser || !canCreateDoctorProfile(targetUser.role)) {
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
     }
 
     const [profile] = await db
@@ -80,6 +82,14 @@ export async function GET(
       visibility === "PUBLIC" ||
       (visibility === "CONNECTIONS_ONLY" && isConnected);
 
+    const connectionCount = await countAcceptedConnections(targetId);
+
+    const [postCountRow] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(posts)
+      .where(eq(posts.authorId, targetId));
+    const postCount = Number(postCountRow?.count ?? 0);
+
     if (!canViewFull) {
       return NextResponse.json({
         user: {
@@ -97,6 +107,8 @@ export async function GET(
           hospitalName: profile.hospitalName,
           limited: true,
         },
+        connectionCount,
+        postCount,
       });
     }
 
@@ -125,6 +137,8 @@ export async function GET(
       user: targetUser,
       profile: { ...profile, limited: false },
       connectionStatus,
+      connectionCount,
+      postCount,
     });
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

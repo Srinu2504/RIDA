@@ -48,6 +48,11 @@
     box-shadow: none;
   }
 
+  .feed-card {
+    @apply overflow-hidden rounded-lg border border-[#d6cec4] bg-white;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.06);
+  }
+
   .rida-input {
     @apply rounded-lg border-[0.5px] border-[#d8d0c0] bg-cream-input px-3.5 py-2 text-xs text-text-mid;
     @apply focus:border-green-primary focus:outline-none;

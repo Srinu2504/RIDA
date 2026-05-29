@@ -3,8 +3,12 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { doctorProfiles, users } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
-import { doctorProfileSchema, formatZodErrors } from "@/lib/validations";
-import { isClinicalRole } from "@/types";
+import {
+  doctorProfileSchema,
+  formatZodErrors,
+  studentDoctorProfileSchema,
+} from "@/lib/validations";
+import { canCreateDoctorProfile } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -12,24 +16,15 @@ export async function POST(req: Request) {
   try {
     const session = await requireSession();
 
-    if (!isClinicalRole(session.user.role)) {
+    if (!canCreateDoctorProfile(session.user.role)) {
       return NextResponse.json(
-        { error: "Only doctors can create a profile" },
+        { error: "This account type cannot create a profile" },
         { status: 403 }
       );
     }
 
+    const isStudent = session.user.role === "MEDICAL_STUDENT";
     const body = await req.json();
-    const parsed = doctorProfileSchema.safeParse(body);
-
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: formatZodErrors(parsed.error) },
-        { status: 400 }
-      );
-    }
-
-    const data = parsed.data;
     const userId = session.user.id;
 
     const [existing] = await db
@@ -38,38 +33,102 @@ export async function POST(req: Request) {
       .where(eq(doctorProfiles.userId, userId))
       .limit(1);
 
-    const profileValues = {
-      userId,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      profilePhoto: data.profilePhoto || null,
-      bio: data.bio || null,
-      gender: data.gender,
-      medicalLicenseNo: data.medicalLicenseNo,
-      specialty: data.specialty,
-      subSpecialty: data.subSpecialty || null,
-      yearsOfExperience: data.yearsOfExperience,
-      qualification: data.qualification,
-      additionalDegrees: data.additionalDegrees || null,
-      hospitalName: data.hospitalName || null,
-      clinicName: data.clinicName || null,
-      city: data.city,
-      state: data.state,
-      country: data.country,
-      consultationFee: data.consultationFee ?? null,
-      phone: data.phone || null,
-      website: data.website || null,
-      profileVisibility: data.profileVisibility,
-      updatedAt: new Date(),
-    };
+    if (isStudent) {
+      const parsed = studentDoctorProfileSchema.safeParse(body);
+      if (!parsed.success) {
+        return NextResponse.json(
+          { error: formatZodErrors(parsed.error) },
+          { status: 400 }
+        );
+      }
 
-    if (existing) {
-      await db
-        .update(doctorProfiles)
-        .set(profileValues)
-        .where(eq(doctorProfiles.userId, userId));
+      const data = parsed.data;
+      const profileValues = {
+        userId,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        profilePhoto: data.profilePhoto || null,
+        bio: data.bio || null,
+        gender: data.gender,
+        medicalLicenseNo: `STUDENT-${userId}`,
+        specialty: data.fieldOfStudy,
+        subSpecialty: null,
+        yearsOfExperience: 0,
+        qualification: "Other",
+        additionalDegrees: null,
+        fieldOfStudy: data.fieldOfStudy,
+        studyYearStarted: data.studyYearStarted,
+        studyYearEnding: data.studyYearEnding,
+        university: data.university,
+        college: data.college,
+        hospitalName: data.university,
+        clinicName: data.college,
+        city: data.city,
+        state: data.state,
+        country: data.country,
+        consultationFee: null,
+        phone: data.phone || null,
+        website: data.website || null,
+        profileVisibility: data.profileVisibility,
+        updatedAt: new Date(),
+      };
+
+      if (existing) {
+        await db
+          .update(doctorProfiles)
+          .set(profileValues)
+          .where(eq(doctorProfiles.userId, userId));
+      } else {
+        await db.insert(doctorProfiles).values(profileValues);
+      }
     } else {
-      await db.insert(doctorProfiles).values(profileValues);
+      const parsed = doctorProfileSchema.safeParse(body);
+      if (!parsed.success) {
+        return NextResponse.json(
+          { error: formatZodErrors(parsed.error) },
+          { status: 400 }
+        );
+      }
+
+      const data = parsed.data;
+      const profileValues = {
+        userId,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        profilePhoto: data.profilePhoto || null,
+        bio: data.bio || null,
+        gender: data.gender,
+        medicalLicenseNo: data.medicalLicenseNo,
+        specialty: data.specialty,
+        subSpecialty: data.subSpecialty || null,
+        yearsOfExperience: data.yearsOfExperience,
+        qualification: data.qualification,
+        additionalDegrees: data.additionalDegrees || null,
+        fieldOfStudy: null,
+        studyYearStarted: null,
+        studyYearEnding: null,
+        university: null,
+        college: null,
+        hospitalName: data.hospitalName || null,
+        clinicName: data.clinicName || null,
+        city: data.city,
+        state: data.state,
+        country: data.country,
+        consultationFee: data.consultationFee ?? null,
+        phone: data.phone || null,
+        website: data.website || null,
+        profileVisibility: data.profileVisibility,
+        updatedAt: new Date(),
+      };
+
+      if (existing) {
+        await db
+          .update(doctorProfiles)
+          .set(profileValues)
+          .where(eq(doctorProfiles.userId, userId));
+      } else {
+        await db.insert(doctorProfiles).values(profileValues);
+      }
     }
 
     await db

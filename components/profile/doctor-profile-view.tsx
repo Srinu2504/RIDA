@@ -1,12 +1,10 @@
 "use client";
-import { z } from "zod";
+
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useUser } from "@/components/shared/user-context";
 import toast from "react-hot-toast";
 import {
-  IconAward,
   IconLock,
   IconMapPin,
   IconPhone,
@@ -15,6 +13,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PostFeed } from "@/components/feed/post-card";
+import { formatProfileName, formatRoleLabel } from "@/lib/user-display";
+import { useMessagingStore } from "@/lib/stores/messaging-store";
 
 interface DoctorProfile {
   firstName: string;
@@ -30,6 +31,11 @@ interface DoctorProfile {
   hospitalName?: string | null;
   clinicName?: string | null;
   yearsOfExperience?: number;
+  fieldOfStudy?: string | null;
+  studyYearStarted?: number | null;
+  studyYearEnding?: number | null;
+  university?: string | null;
+  college?: string | null;
   phone?: string | null;
   website?: string | null;
   medicalLicenseNo?: string;
@@ -40,11 +46,12 @@ interface ProfileData {
   user: { id: string; fullName: string; role: string };
   profile: DoctorProfile;
   connectionStatus?: string | null;
+  connectionCount?: number;
+  postCount?: number;
 }
 
 export function DoctorProfileView({ userId }: { userId: string }) {
   const user = useUser();
-  const router = useRouter();
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
@@ -78,9 +85,7 @@ export function DoctorProfileView({ userId }: { userId: string }) {
         return;
       }
       toast.success("Request sent");
-      setData((d) =>
-        d ? { ...d, connectionStatus: "PENDING" } : d
-      );
+      setData((d) => (d ? { ...d, connectionStatus: "PENDING" } : d));
     } finally {
       setConnecting(false);
     }
@@ -95,14 +100,21 @@ export function DoctorProfileView({ userId }: { userId: string }) {
     );
   }
 
-  const { profile } = data;
+  const { profile, user: profileUser } = data;
   const limited = profile.limited;
-  const name = `Dr. ${profile.firstName} ${profile.lastName}`;
+  const name = formatProfileName(
+    profileUser.role,
+    profile.firstName,
+    profile.lastName
+  );
   const isSelf = user?.id === userId;
   const isConnected = data.connectionStatus === "ACCEPTED";
   const location = [profile.city, profile.state, profile.country]
     .filter(Boolean)
     .join(", ");
+  const connectionCount = data.connectionCount ?? 0;
+  const postCount = data.postCount ?? 0;
+  const isStudent = profileUser.role === "MEDICAL_STUDENT";
 
   return (
     <div className="mx-auto max-w-[680px] px-4 py-0 md:px-0">
@@ -127,13 +139,24 @@ export function DoctorProfileView({ userId }: { userId: string }) {
             </div>
             <div className="pt-1">
               <h1 className="text-lg font-extrabold text-text-dark">{name}</h1>
+              <p className="text-[11px] font-semibold text-text-muted">
+                {formatRoleLabel(profileUser.role)}
+              </p>
               <p className="text-[13px] font-bold text-green-primary">
-                {profile.specialty}
-                {profile.qualification ? ` · ${profile.qualification}` : ""}
+                {isStudent
+                  ? profile.fieldOfStudy || profile.specialty
+                  : profile.specialty}
+                {!isStudent && profile.qualification
+                  ? ` · ${profile.qualification}`
+                  : ""}
               </p>
               <p className="mt-0.5 flex items-center gap-1 text-xs text-text-muted">
                 <IconMapPin size={14} stroke={1.5} />
-                {[profile.hospitalName, location].filter(Boolean).join(" · ")}
+                {isStudent
+                  ? [profile.university, profile.college, location]
+                      .filter(Boolean)
+                      .join(" · ")
+                  : [profile.hospitalName, location].filter(Boolean).join(" · ")}
               </p>
             </div>
           </div>
@@ -142,7 +165,11 @@ export function DoctorProfileView({ userId }: { userId: string }) {
             <div className="flex items-center gap-2">
               <Button
                 variant={isConnected ? "cream" : "outline"}
-                disabled={connecting || data.connectionStatus === "PENDING" || isConnected}
+                disabled={
+                  connecting ||
+                  data.connectionStatus === "PENDING" ||
+                  isConnected
+                }
                 onClick={handleConnect}
               >
                 {isConnected
@@ -155,9 +182,7 @@ export function DoctorProfileView({ userId }: { userId: string }) {
               <Button
                 variant="cream"
                 title={
-                  isConnected
-                    ? ""
-                    : "Connect with this doctor to message them"
+                  isConnected ? "" : "Connect to message this person"
                 }
                 disabled={!isConnected}
                 onClick={async () => {
@@ -170,11 +195,13 @@ export function DoctorProfileView({ userId }: { userId: string }) {
                     const json = await res.json();
                     if (!res.ok) {
                       toast.error(
-                        json.error ?? "Connect with this doctor to message them"
+                        json.error ?? "Connect to message this person"
                       );
                       return;
                     }
-                    router.push(`/messages?conversation=${json.conversationId}`);
+                    useMessagingStore
+                      .getState()
+                      .openConversation(json.conversationId);
                   } catch {
                     toast.error("Failed to start conversation");
                   }
@@ -187,16 +214,15 @@ export function DoctorProfileView({ userId }: { userId: string }) {
         </div>
 
         <div className="mt-5 flex justify-around border-t-[0.5px] border-cream-divider pt-4">
-          <ProfileStat label="Posts" value="0" />
-          <ProfileStat label="Connections" value="—" />
-          <ProfileStat label="Profile views" value="—" />
+          <ProfileStat label="Posts" value={String(postCount)} />
+          <ProfileStat label="Connections" value={String(connectionCount)} />
         </div>
       </div>
 
       {limited && (
         <div className="rida-card mt-3.5 flex items-center gap-2 p-4 text-xs text-text-muted">
           <IconLock size={16} stroke={1.5} className="text-green-muted" />
-          Connect to view full profile details
+          Connect to view full profile details and posts
         </div>
       )}
 
@@ -208,31 +234,61 @@ export function DoctorProfileView({ userId }: { userId: string }) {
 
       {!limited && (
         <>
-          <InfoCard title="Professional details">
-            <InfoRow label="Qualification" value={profile.qualification} />
-            {profile.additionalDegrees && (
+          {isStudent ? (
+            <InfoCard title="Education">
               <InfoRow
-                label="Additional degrees"
-                value={profile.additionalDegrees}
+                label="Field of study"
+                value={profile.fieldOfStudy || profile.specialty}
               />
-            )}
-            {profile.yearsOfExperience != null && (
-              <InfoRow
-                label="Experience"
-                value={`${profile.yearsOfExperience} years`}
-              />
-            )}
-          </InfoCard>
+              {profile.studyYearStarted != null && (
+                <InfoRow
+                  label="Started"
+                  value={String(profile.studyYearStarted)}
+                />
+              )}
+              {profile.studyYearEnding != null && (
+                <InfoRow
+                  label="Expected graduation"
+                  value={String(profile.studyYearEnding)}
+                />
+              )}
+              {profile.university && (
+                <InfoRow label="University" value={profile.university} />
+              )}
+              {profile.college && (
+                <InfoRow label="College" value={profile.college} />
+              )}
+              <InfoRow label="Location" value={location} />
+            </InfoCard>
+          ) : (
+            <>
+              <InfoCard title="Professional details">
+                <InfoRow label="Qualification" value={profile.qualification} />
+                {profile.additionalDegrees && (
+                  <InfoRow
+                    label="Additional degrees"
+                    value={profile.additionalDegrees}
+                  />
+                )}
+                {profile.yearsOfExperience != null && (
+                  <InfoRow
+                    label="Experience"
+                    value={`${profile.yearsOfExperience} years`}
+                  />
+                )}
+              </InfoCard>
 
-          <InfoCard title="Practice info">
-            {profile.hospitalName && (
-              <InfoRow label="Hospital" value={profile.hospitalName} />
-            )}
-            {profile.clinicName && (
-              <InfoRow label="Clinic" value={profile.clinicName} />
-            )}
-            <InfoRow label="Location" value={location} />
-          </InfoCard>
+              <InfoCard title="Practice info">
+                {profile.hospitalName && (
+                  <InfoRow label="Hospital" value={profile.hospitalName} />
+                )}
+                {profile.clinicName && (
+                  <InfoRow label="Clinic" value={profile.clinicName} />
+                )}
+                <InfoRow label="Location" value={location} />
+              </InfoCard>
+            </>
+          )}
 
           <InfoCard title="Contact">
             {profile.phone ? (
@@ -258,6 +314,18 @@ export function DoctorProfileView({ userId }: { userId: string }) {
               </a>
             )}
           </InfoCard>
+
+          <div className="mt-3.5">
+            <h2 className="mb-3 text-sm font-extrabold text-text-dark">
+              Activity
+            </h2>
+            <PostFeed
+              source="profile"
+              profileUserId={userId}
+              currentUserId={user?.id ?? ""}
+              emptyMessage="No posts yet"
+            />
+          </div>
         </>
       )}
     </div>

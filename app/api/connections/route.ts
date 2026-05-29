@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { connections, doctorProfiles, users } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
 import { createNotification } from "@/lib/notifications";
-import { isClinicalRole } from "@/types";
+import { canCreateDoctorProfile } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -89,7 +89,12 @@ export async function POST(req: Request) {
     }
 
     const [receiver] = await db
-      .select({ id: users.id, role: users.role, fullName: users.fullName })
+      .select({
+        id: users.id,
+        role: users.role,
+        fullName: users.fullName,
+        isProfileComplete: users.isProfileComplete,
+      })
       .from(users)
       .where(eq(users.id, receiverId))
       .limit(1);
@@ -98,9 +103,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-  if (!isClinicalRole(receiver.role)) {
+    if (!canCreateDoctorProfile(receiver.role)) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    if (!receiver.isProfileComplete) {
       return NextResponse.json(
-        { error: "You can only connect with doctors" },
+        { error: "This user has not completed their profile yet" },
+        { status: 400 }
+      );
+    }
+
+    const [receiverProfile] = await db
+      .select({ userId: doctorProfiles.userId })
+      .from(doctorProfiles)
+      .where(eq(doctorProfiles.userId, receiverId))
+      .limit(1);
+
+    if (!receiverProfile) {
+      return NextResponse.json(
+        { error: "This user has not completed their profile yet" },
         { status: 400 }
       );
     }

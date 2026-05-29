@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/shared/user-avatar";
+import { formatProfileName, formatRoleLabel } from "@/lib/user-display";
 import { cn } from "@/lib/utils";
+import { useMessagingStore } from "@/lib/stores/messaging-store";
 
 interface ConnectionItem {
   id: string;
@@ -22,10 +23,9 @@ interface ConnectionItem {
   } | null;
 }
 
-type Tab = "pending" | "connected";
+type Tab = "pending" | "sent" | "connected";
 
 export function ConnectionList() {
-  const router = useRouter();
   const [items, setItems] = useState<ConnectionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("pending");
@@ -68,8 +68,12 @@ export function ConnectionList() {
   const pending = items.filter(
     (i) => i.status === "PENDING" && i.direction === "received"
   );
+  const sent = items.filter(
+    (i) => i.status === "PENDING" && i.direction === "sent"
+  );
   const connected = items.filter((i) => i.status === "ACCEPTED");
-  const displayed = tab === "pending" ? pending : connected;
+  const displayed =
+    tab === "pending" ? pending : tab === "sent" ? sent : connected;
 
   return (
     <div>
@@ -77,12 +81,17 @@ export function ConnectionList() {
         <TabButton
           active={tab === "pending"}
           onClick={() => setTab("pending")}
-          label={`Pending (${pending.length})`}
+          label={`Requests (${pending.length})`}
+        />
+        <TabButton
+          active={tab === "sent"}
+          onClick={() => setTab("sent")}
+          label={`Sent (${sent.length})`}
         />
         <TabButton
           active={tab === "connected"}
           onClick={() => setTab("connected")}
-          label={`My connections (${connected.length})`}
+          label={`Connections (${connected.length})`}
         />
       </div>
 
@@ -94,16 +103,25 @@ export function ConnectionList() {
         </div>
       ) : displayed.length === 0 ? (
         <p className="py-12 text-center text-xs text-text-muted">
-          {tab === "pending" ? "No pending requests" : "No connections yet"}.{" "}
+          {tab === "pending"
+            ? "No incoming requests"
+            : tab === "sent"
+              ? "No pending sent requests"
+              : "No connections yet"}
+          .{" "}
           <Link href="/search" className="font-semibold text-green-primary">
-            Find doctors
+            Find people
           </Link>
         </p>
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {displayed.map((item) => {
             const name = item.profile
-              ? `Dr. ${item.profile.firstName} ${item.profile.lastName}`
+              ? formatProfileName(
+                  item.otherUser.role,
+                  item.profile.firstName,
+                  item.profile.lastName
+                )
               : item.otherUser.fullName;
 
             return (
@@ -117,6 +135,11 @@ export function ConnectionList() {
                     >
                       {name}
                     </Link>
+                    {item.otherUser.role === "MEDICAL_STUDENT" && (
+                      <p className="text-[10px] font-semibold text-text-muted">
+                        {formatRoleLabel(item.otherUser.role)}
+                      </p>
+                    )}
                     {item.profile?.specialty && (
                       <p className="text-[10px] font-bold text-green-primary">
                         {item.profile.specialty}
@@ -146,6 +169,11 @@ export function ConnectionList() {
                     </Button>
                   </div>
                 )}
+                {tab === "sent" && (
+                  <p className="text-center text-[10px] font-semibold text-text-muted">
+                    Awaiting response
+                  </p>
+                )}
                 {tab === "connected" && (
                   <Button
                     variant="cream"
@@ -166,7 +194,9 @@ export function ConnectionList() {
                           );
                           return;
                         }
-                        router.push(`/messages?conversation=${json.conversationId}`);
+                        useMessagingStore
+                          .getState()
+                          .openConversation(json.conversationId);
                       } catch {
                         toast.error("Failed to start conversation");
                       }

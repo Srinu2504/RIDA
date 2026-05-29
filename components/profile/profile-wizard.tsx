@@ -12,6 +12,10 @@ import {
   profileStep2Schema,
   profileStep3Schema,
   profileStep4Schema,
+  studentDoctorProfileSchema,
+  studentProfileStep2Schema,
+  studentProfileStep2FormSchema,
+  studentProfileStep3Schema,
   SPECIALTIES,
   formatZodErrors,
 } from "@/lib/validations";
@@ -29,17 +33,24 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
-const STEP_LABELS = ["Personal", "Credentials", "Practice", "Contact"];
+const PHYSICIAN_STEP_LABELS = ["Personal", "Credentials", "Practice", "Contact"];
+const STUDENT_STEP_LABELS = ["Personal", "Education", "Institution", "Contact"];
 
 type Step1 = z.infer<typeof profileStep1Schema>;
-type Step2 = z.infer<typeof profileStep2Schema>;
-type Step3 = z.infer<typeof profileStep3Schema>;
+type PhysicianStep2 = z.infer<typeof profileStep2Schema>;
+type PhysicianStep3 = z.infer<typeof profileStep3Schema>;
+type StudentStep2 = z.infer<typeof studentProfileStep2Schema>;
+type StudentStep3 = z.infer<typeof studentProfileStep3Schema>;
 type Step4 = z.infer<typeof profileStep4Schema>;
-type FullProfile = z.infer<typeof doctorProfileSchema>;
+type FullPhysicianProfile = z.infer<typeof doctorProfileSchema>;
+type FullStudentProfile = z.infer<typeof studentDoctorProfileSchema>;
 
 export function ProfileWizard() {
   const router = useRouter();
-  const { update } = useSession();
+  const { data: session, update } = useSession();
+  const isStudent = session?.user?.role === "MEDICAL_STUDENT";
+  const stepLabels = isStudent ? STUDENT_STEP_LABELS : PHYSICIAN_STEP_LABELS;
+
   const {
     step,
     setStep,
@@ -83,8 +94,11 @@ export function ProfileWizard() {
     reader.readAsDataURL(file);
   };
 
-  const submitAll = async (payload: FullProfile) => {
-    const parsed = doctorProfileSchema.safeParse(payload);
+  const submitAll = async (
+    payload: FullPhysicianProfile | FullStudentProfile
+  ) => {
+    const schema = isStudent ? studentDoctorProfileSchema : doctorProfileSchema;
+    const parsed = schema.safeParse(payload);
 
     if (!parsed.success) {
       toast.error(formatZodErrors(parsed.error));
@@ -129,7 +143,7 @@ export function ProfileWizard() {
 
   const goNext = async (
     stepNum: number,
-    data: Step1 | Step2 | Step3 | Step4
+    data: Step1 | PhysicianStep2 | PhysicianStep3 | StudentStep2 | StudentStep3 | Step4
   ) => {
     if (stepNum === 1) {
       const merged: Step1 = {
@@ -140,8 +154,8 @@ export function ProfileWizard() {
       };
       setStep1(merged);
     }
-    if (stepNum === 2) setStep2(data as Step2);
-    if (stepNum === 3) setStep3(data as Step3);
+    if (stepNum === 2) setStep2(data as PhysicianStep2 | StudentStep2);
+    if (stepNum === 3) setStep3(data as PhysicianStep3 | StudentStep3);
     if (stepNum === 4) setStep4(data as Step4);
 
     if (stepNum < 4) {
@@ -149,13 +163,26 @@ export function ProfileWizard() {
       return;
     }
 
-    const fullPayload: FullProfile = {
-      ...(stepNum === 1 ? (data as Step1) : (step1 as Step1)),
-      ...(stepNum === 2 ? (data as Step2) : (step2 as Step2)),
-      ...(stepNum === 3 ? (data as Step3) : (step3 as Step3)),
-      ...(data as Step4),
-    };
+    const s1 = (stepNum === 1 ? data : step1) as Step1;
+    const s4 = data as Step4;
 
+    if (isStudent) {
+      const fullPayload: FullStudentProfile = {
+        ...s1,
+        ...(stepNum === 2 ? data : step2) as StudentStep2,
+        ...(stepNum === 3 ? data : step3) as StudentStep3,
+        ...s4,
+      };
+      await submitAll(fullPayload);
+      return;
+    }
+
+    const fullPayload: FullPhysicianProfile = {
+      ...s1,
+      ...(stepNum === 2 ? data : step2) as PhysicianStep2,
+      ...(stepNum === 3 ? data : step3) as PhysicianStep3,
+      ...s4,
+    };
     await submitAll(fullPayload);
   };
 
@@ -163,7 +190,7 @@ export function ProfileWizard() {
     <div className="mx-auto w-full max-w-[560px]">
       <div className="mb-6">
         <div className="mb-3 flex justify-between gap-1">
-          {STEP_LABELS.map((label, i) => {
+          {stepLabels.map((label, i) => {
             const stepNum = i + 1;
             const active = step >= stepNum;
             return (
@@ -210,20 +237,34 @@ export function ProfileWizard() {
             onNext={(data) => goNext(1, data)}
           />
         )}
-        {step === 2 && (
-          <Step2Form
-            defaults={step2 as Partial<Step2>}
-            onNext={(data) => goNext(2, data)}
-            onBack={() => setStep(1)}
-          />
-        )}
-        {step === 3 && (
-          <Step3Form
-            defaults={step3 as Partial<Step3>}
-            onNext={(data) => goNext(3, data)}
-            onBack={() => setStep(2)}
-          />
-        )}
+        {step === 2 &&
+          (isStudent ? (
+            <Step2StudentForm
+              defaults={step2 as Partial<StudentStep2>}
+              onNext={(data) => goNext(2, data)}
+              onBack={() => setStep(1)}
+            />
+          ) : (
+            <Step2PhysicianForm
+              defaults={step2 as Partial<PhysicianStep2>}
+              onNext={(data) => goNext(2, data)}
+              onBack={() => setStep(1)}
+            />
+          ))}
+        {step === 3 &&
+          (isStudent ? (
+            <Step3StudentForm
+              defaults={step3 as Partial<StudentStep3>}
+              onNext={(data) => goNext(3, data)}
+              onBack={() => setStep(2)}
+            />
+          ) : (
+            <Step3PhysicianForm
+              defaults={step3 as Partial<PhysicianStep3>}
+              onNext={(data) => goNext(3, data)}
+              onBack={() => setStep(2)}
+            />
+          ))}
         {step === 4 && (
           <Step4Form
             defaults={step4 as Partial<Step4>}
@@ -267,16 +308,16 @@ function Step1Form({
         <div>
           <Label>First name</Label>
           <Input {...register("firstName")} />
-            {errors.firstName && (
-              <p className="mt-1 text-[10px] text-[#c0392b]">{errors.firstName.message}</p>
-            )}
+          {errors.firstName && (
+            <p className="mt-1 text-[10px] text-[#c0392b]">{errors.firstName.message}</p>
+          )}
         </div>
         <div>
           <Label>Last name</Label>
           <Input {...register("lastName")} />
-            {errors.lastName && (
-              <p className="mt-1 text-[10px] text-[#c0392b]">{errors.lastName.message}</p>
-            )}
+          {errors.lastName && (
+            <p className="mt-1 text-[10px] text-[#c0392b]">{errors.lastName.message}</p>
+          )}
         </div>
       </div>
       <div>
@@ -323,13 +364,86 @@ function Step1Form({
   );
 }
 
-function Step2Form({
+function Step2StudentForm({
   defaults,
   onNext,
   onBack,
 }: {
-  defaults: Partial<Step2>;
-  onNext: (data: Step2) => void;
+  defaults: Partial<StudentStep2>;
+  onNext: (data: StudentStep2) => void;
+  onBack: () => void;
+}) {
+  const currentYear = new Date().getFullYear();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<StudentStep2>({
+    resolver: zodResolver(studentProfileStep2FormSchema),
+    defaultValues: defaults,
+  });
+
+  return (
+    <form onSubmit={handleSubmit(onNext)} className="space-y-4">
+      <div>
+        <Label>Field of study</Label>
+        <Input
+          {...register("fieldOfStudy")}
+          placeholder="e.g. MBBS, Medicine, BDS"
+        />
+        {errors.fieldOfStudy && (
+          <p className="mt-1 text-sm text-error">{errors.fieldOfStudy.message}</p>
+        )}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <Label>Year started</Label>
+          <Input
+            type="number"
+            min={1990}
+            max={currentYear}
+            {...register("studyYearStarted")}
+          />
+          {errors.studyYearStarted && (
+            <p className="mt-1 text-sm text-error">
+              {errors.studyYearStarted.message}
+            </p>
+          )}
+        </div>
+        <div>
+          <Label>Expected graduation year</Label>
+          <Input
+            type="number"
+            min={1990}
+            max={currentYear + 10}
+            {...register("studyYearEnding")}
+          />
+          {errors.studyYearEnding && (
+            <p className="mt-1 text-sm text-error">
+              {errors.studyYearEnding.message}
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button type="button" variant="outline" onClick={onBack}>
+          Back
+        </Button>
+        <Button type="submit" className="flex-1">
+          Continue
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function Step2PhysicianForm({
+  defaults,
+  onNext,
+  onBack,
+}: {
+  defaults: Partial<PhysicianStep2>;
+  onNext: (data: PhysicianStep2) => void;
   onBack: () => void;
 }) {
   const {
@@ -337,7 +451,7 @@ function Step2Form({
     handleSubmit,
     control,
     formState: { errors },
-  } = useForm<Step2>({
+  } = useForm<PhysicianStep2>({
     resolver: zodResolver(profileStep2Schema),
     defaultValues: {
       qualification: "MBBS",
@@ -432,20 +546,89 @@ function Step2Form({
   );
 }
 
-function Step3Form({
+function Step3StudentForm({
   defaults,
   onNext,
   onBack,
 }: {
-  defaults: Partial<Step3>;
-  onNext: (data: Step3) => void;
+  defaults: Partial<StudentStep3>;
+  onNext: (data: StudentStep3) => void;
   onBack: () => void;
 }) {
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<Step3>({
+  } = useForm<StudentStep3>({
+    resolver: zodResolver(studentProfileStep3Schema),
+    defaultValues: defaults,
+  });
+
+  return (
+    <form onSubmit={handleSubmit(onNext)} className="space-y-4">
+      <div>
+        <Label>University</Label>
+        <Input {...register("university")} placeholder="University name" />
+        {errors.university && (
+          <p className="mt-1 text-sm text-error">{errors.university.message}</p>
+        )}
+      </div>
+      <div>
+        <Label>College</Label>
+        <Input {...register("college")} placeholder="Medical college name" />
+        {errors.college && (
+          <p className="mt-1 text-sm text-error">{errors.college.message}</p>
+        )}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div>
+          <Label>City</Label>
+          <Input {...register("city")} />
+          {errors.city && (
+            <p className="mt-1 text-sm text-error">{errors.city.message}</p>
+          )}
+        </div>
+        <div>
+          <Label>State</Label>
+          <Input {...register("state")} />
+          {errors.state && (
+            <p className="mt-1 text-sm text-error">{errors.state.message}</p>
+          )}
+        </div>
+        <div>
+          <Label>Country</Label>
+          <Input {...register("country")} />
+          {errors.country && (
+            <p className="mt-1 text-sm text-error">{errors.country.message}</p>
+          )}
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button type="button" variant="outline" onClick={onBack}>
+          Back
+        </Button>
+        <Button type="submit" className="flex-1">
+          Continue
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function Step3PhysicianForm({
+  defaults,
+  onNext,
+  onBack,
+}: {
+  defaults: Partial<PhysicianStep3>;
+  onNext: (data: PhysicianStep3) => void;
+  onBack: () => void;
+}) {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<PhysicianStep3>({
     resolver: zodResolver(profileStep3Schema),
     defaultValues: defaults,
   });

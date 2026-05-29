@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { DoctorSearchResult } from "@/types";
 import { UserAvatar } from "@/components/shared/user-avatar";
+import { formatProfileName, formatRoleLabel } from "@/lib/user-display";
 import { cn } from "@/lib/utils";
 
 interface DoctorCardProps {
@@ -19,7 +20,11 @@ export function DoctorCard({
   loading,
   grid = true,
 }: DoctorCardProps) {
-  const name = `Dr. ${doctor.firstName} ${doctor.lastName}`;
+  const name = formatProfileName(
+    doctor.role ?? "PRACTICING_PHYSICIAN",
+    doctor.firstName,
+    doctor.lastName
+  );
   const status = doctor.connectionStatus;
 
   if (grid) {
@@ -48,13 +53,21 @@ export function DoctorCard({
         >
           {name}
         </Link>
+        {doctor.role === "MEDICAL_STUDENT" && (
+          <p className="mt-0.5 text-[10px] font-semibold text-text-muted">
+            {formatRoleLabel(doctor.role)}
+          </p>
+        )}
         <p className="mt-0.5 text-[10px] font-bold text-green-primary">
           {doctor.specialty}
         </p>
         <p className="mt-1 text-[10px] text-text-muted">
-          {[doctor.hospitalName, doctor.city].filter(Boolean).join(" · ")}
+          {doctor.role === "MEDICAL_STUDENT"
+            ? [doctor.university ?? doctor.hospitalName, doctor.college, doctor.city]
+                .filter(Boolean)
+                .join(" · ")
+            : [doctor.hospitalName, doctor.city].filter(Boolean).join(" · ")}
         </p>
-        <p className="mt-1 text-[10px] text-text-faint">0 mutual peers</p>
         {onConnect && (
           <button
             type="button"

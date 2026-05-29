@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { AuthBackLink } from "@/components/auth/auth-back-link";
 
 type SignupForm = z.infer<typeof signupSchema>;
 
@@ -100,6 +101,7 @@ export function SignupForm() {
 
   return (
     <div className="w-full max-w-[440px]">
+      <AuthBackLink href="/signin" label="Back to sign in" />
       <h1 className="mb-6 text-center text-[22px] font-extrabold text-green-primary">
         RIDA
       </h1>

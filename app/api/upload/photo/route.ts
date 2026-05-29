@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireSession } from "@/lib/session";
-import { uploadProfilePhoto } from "@/lib/cloudinary";
-import { isClinicalRole } from "@/types";
+import { uploadPostImage, uploadProfilePhoto } from "@/lib/cloudinary";
+import { canCreateDoctorProfile } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -9,11 +9,11 @@ export async function POST(req: Request) {
   try {
     const session = await requireSession();
 
-    if (!isClinicalRole(session.user.role)) {
+    if (!canCreateDoctorProfile(session.user.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { image } = await req.json();
+    const { image, purpose } = await req.json();
 
     if (!image || typeof image !== "string") {
       return NextResponse.json({ error: "Image required" }, { status: 400 });
@@ -26,7 +26,10 @@ export async function POST(req: Request) {
       );
     }
 
-    const url = await uploadProfilePhoto(image, session.user.id);
+    const url =
+      purpose === "post"
+        ? await uploadPostImage(image, session.user.id)
+        : await uploadProfilePhoto(image, session.user.id);
     return NextResponse.json({ url });
   } catch (error) {
     console.error("[upload]", error);

@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { IconMail } from "@tabler/icons-react";
 import { useSignupStore } from "@/lib/stores/signup-store";
 import { Button } from "@/components/ui/button";
+import { AuthBackLink } from "@/components/auth/auth-back-link";
 
 export function VerifyEmailForm() {
   const router = useRouter();
@@ -94,6 +95,7 @@ export function VerifyEmailForm() {
 
   return (
     <div className="w-full max-w-[400px]">
+      <AuthBackLink href="/signup" label="Back" />
       <div className="mb-6 flex flex-col items-center">
         <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-light">
           <IconMail size={32} className="text-green-primary" stroke={1.5} />

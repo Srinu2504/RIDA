@@ -8,7 +8,9 @@ import { ChatWindow, type ChatMessage } from "@/components/messaging/ChatWindow"
 import { MessageInput } from "@/components/messaging/MessageInput";
 import { useConversation } from "@/hooks/useConversation";
 import { useMessagingStore, type ConversationListItem } from "@/lib/stores/messaging-store";
+import { PageBackHeader } from "@/components/shared/page-back-header";
 import { useUser } from "@/components/shared/user-context";
+import { IconArrowLeft } from "@tabler/icons-react";
 
 export default function MessagesPage() {
   const user = useUser();
@@ -121,9 +123,25 @@ export default function MessagesPage() {
     loadConversations().catch(() => {});
   };
 
+  const clearConversation = () => {
+    setActiveConversationId(null);
+    router.push("/messages");
+  };
+
   return (
-    <div className="mx-auto h-[calc(100vh-56px)] max-w-[1200px] px-0 md:px-6">
-      <div className="h-full md:py-6">
+    <div className="mx-auto h-[calc(100vh-52px)] max-w-[1200px] px-0 md:px-6">
+      <div
+        className={[
+          "px-4 pt-4 md:px-0",
+          activeConversationId ? "hidden md:block" : "block",
+        ].join(" ")}
+      >
+        <PageBackHeader
+          title="Messaging"
+          subtitle="Chat with your connections"
+        />
+      </div>
+      <div className="h-[calc(100%-4rem)] md:h-full md:py-2">
         <div className="h-full overflow-hidden border-y-[0.5px] border-cream-border bg-cream-surface md:rounded-xl md:border-[0.5px]">
           <div className="flex h-full">
             <div
@@ -153,14 +171,18 @@ export default function MessagesPage() {
                 </div>
               ) : (
                 <>
-                  <div className="md:hidden border-b-[0.5px] border-cream-border bg-cream-surface px-3 py-2">
+                  <div className="flex items-center gap-2 border-b border-cream-border bg-cream-surface px-3 py-2 md:hidden">
                     <button
                       type="button"
-                      onClick={() => setActiveConversationId(null)}
-                      className="text-xs font-semibold text-green-primary"
+                      onClick={clearConversation}
+                      className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-semibold text-green-primary hover:bg-green-pale"
                     >
-                      ← Back
+                      <IconArrowLeft size={18} stroke={2} />
+                      Back
                     </button>
+                    <span className="truncate text-xs font-bold text-text-dark">
+                      {active.otherDoctor.name}
+                    </span>
                   </div>
 
                   <div className="flex-1">

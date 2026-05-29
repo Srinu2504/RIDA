@@ -1,17 +1,21 @@
 "use client";
 
 import { UserAvatar } from "@/components/shared/user-avatar";
+import { formatProfileName, formatRoleLabel } from "@/lib/user-display";
 import type { HeroStripData } from "@/types";
 
 export function HeroStrip({ data }: { data: HeroStripData }) {
   const name =
-    data.firstName && data.lastName
-      ? `Dr. ${data.firstName} ${data.lastName}`
+    data.firstName && data.lastName && data.role
+      ? formatProfileName(data.role, data.firstName, data.lastName)
       : data.fullName;
 
-  const subtitle = [data.specialty, data.hospitalName]
-    .filter(Boolean)
-    .join(" · ");
+  const subtitle =
+    data.role === "MEDICAL_STUDENT"
+      ? [data.specialty, data.university, data.college]
+          .filter(Boolean)
+          .join(" · ")
+      : [data.specialty, data.hospitalName].filter(Boolean).join(" · ");
 
   return (
     <div className="border-b-[0.5px] border-[#e5ddd0] bg-cream-surface px-4 py-4 md:px-6">
@@ -25,6 +29,11 @@ export function HeroStrip({ data }: { data: HeroStripData }) {
           />
           <div>
             <h1 className="text-base font-extrabold text-text-dark">{name}</h1>
+            {data.role === "MEDICAL_STUDENT" && (
+              <p className="text-[11px] font-semibold text-text-muted">
+                {formatRoleLabel(data.role)}
+              </p>
+            )}
             {subtitle && (
               <p className="text-[11px] text-text-muted">{subtitle}</p>
             )}

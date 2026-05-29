@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
+import { PageBackHeader } from "@/components/shared/page-back-header";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { type AppNotification, useNotifications } from "@/hooks/useNotifications";
 
@@ -80,23 +81,23 @@ export default function NotificationsPage() {
 
   return (
     <div className="mx-auto max-w-[840px] px-4 py-5 md:px-6">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="text-[17px] font-extrabold text-text-dark">🔔 Notifications</h1>
-          <p className="text-[11px] text-text-muted">Real-time updates</p>
-        </div>
-        <button
-          type="button"
-          className="text-xs font-semibold text-green-primary"
-          onClick={async () => {
-            await fetch("/api/notifications/read", { method: "POST" });
-            setAllItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
-            setUnreadCount(0);
-          }}
-        >
-          Mark all as read
-        </button>
-      </div>
+      <PageBackHeader
+        title="Notifications"
+        subtitle="Real-time updates"
+        rightAction={
+          <button
+            type="button"
+            className="text-xs font-semibold text-green-primary hover:underline"
+            onClick={async () => {
+              await fetch("/api/notifications/read", { method: "POST" });
+              setAllItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
+              setUnreadCount(0);
+            }}
+          >
+            Mark all read
+          </button>
+        }
+      />
 
       <div className="mb-4 flex flex-wrap gap-2">
         {[

@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import { and, desc, eq, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { connections, conversations, doctorProfiles, messages } from "@/drizzle/schema";
+import {
+  connections,
+  conversations,
+  doctorProfiles,
+  messages,
+  users,
+} from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
+import { formatProfileName } from "@/lib/user-display";
 
 export const dynamic = "force-dynamic";
 
@@ -48,8 +55,10 @@ export async function GET() {
             lastName: doctorProfiles.lastName,
             profilePhoto: doctorProfiles.profilePhoto,
             specialty: doctorProfiles.specialty,
+            role: users.role,
           })
           .from(doctorProfiles)
+          .innerJoin(users, eq(users.id, doctorProfiles.userId))
           .where(eq(doctorProfiles.userId, otherId))
           .limit(1);
 
@@ -79,8 +88,12 @@ export async function GET() {
           );
 
         const otherName = profile
-          ? `Dr. ${profile.firstName} ${profile.lastName}`
-          : "Doctor";
+          ? formatProfileName(
+              profile.role,
+              profile.firstName,
+              profile.lastName
+            )
+          : "User";
 
         return {
           id: c.id,

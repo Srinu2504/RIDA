@@ -1,27 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { signOut } from "next-auth/react";
 import { useUser } from "@/components/shared/user-context";
 import {
   IconBookmark,
+  IconHome,
   IconMessage,
   IconSearch,
   IconUsers,
 } from "@tabler/icons-react";
 import { Bell } from "lucide-react";
-import { UserAvatar } from "@/components/shared/user-avatar";
-import { getPusherClient } from "@/lib/pusher";
 import { useNotifications } from "@/hooks/useNotifications";
+import { UserMenu } from "@/components/shared/user-menu";
+import { useMessagingStore } from "@/lib/stores/messaging-store";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
+import { cn } from "@/lib/utils";
+
+const navItems = [
+  { href: "/feed", label: "Home", icon: IconHome },
+  { href: "/connections", label: "My Network", icon: IconUsers },
+  { href: "/messages", label: "Messaging", icon: IconMessage },
+];
 
 export function MainNav() {
   const router = useRouter();
+  const pathname = usePathname();
   const user = useUser();
-  const [unread, setUnread] = useState(0);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
+  const totalUnread = useMessagingStore((s) => s.totalUnread);
+  const setWidgetOpen = useMessagingStore((s) => s.setWidgetOpen);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const {
     unreadCount: notifUnread,
@@ -29,28 +38,6 @@ export function MainNav() {
     setNotifications,
     setUnreadCount,
   } = useNotifications(user?.id ?? "");
-
-  useEffect(() => {
-    if (!user?.id) return;
-    const userId = user.id;
-    const pusherClient = getPusherClient();
-    if (!pusherClient) return;
-
-    const load = async () => {
-      const res = await fetch("/api/conversations");
-      const json = await res.json();
-      if (res.ok) setUnread(Number(json.totalUnread ?? 0));
-    };
-
-    load().catch(() => {});
-
-    const channel = pusherClient.subscribe(`user-${userId}`);
-    channel.bind("unread-update", () => load().catch(() => {}));
-
-    return () => {
-      pusherClient.unsubscribe(`user-${userId}`);
-    };
-  }, [user?.id]);
 
   useEffect(() => {
     if (!showNotifDropdown || !user?.id) return;
@@ -64,68 +51,134 @@ export function MainNav() {
   }, [showNotifDropdown, user?.id, setNotifications, setUnreadCount]);
 
   return (
-    <header className="sticky top-0 z-50 h-14 bg-green-primary">
-      <div className="mx-auto flex h-full max-w-[1200px] items-center gap-4 px-4 md:px-6">
+    <header className="sticky top-0 z-50 border-b border-[#d6cec4] bg-white">
+      <div className="mx-auto flex h-[52px] max-w-[1128px] items-center gap-2 px-3 md:gap-4 md:px-4">
         <Link
           href="/feed"
-          className="shrink-0 text-xl font-black tracking-[4px] text-cream-surface"
+          className="flex shrink-0 items-center gap-1"
+          aria-label="RIDA home"
         >
-          RIDA
+          <span className="flex h-8 w-8 items-center justify-center rounded bg-green-primary text-sm font-black text-white">
+            R
+          </span>
+          <span className="hidden text-lg font-black tracking-wide text-green-primary sm:inline">
+            RIDA
+          </span>
         </Link>
 
-        <div className="hidden flex-1 md:block">
-          <div className="relative mx-auto max-w-md">
+        <div className="hidden min-w-0 flex-1 md:block md:max-w-[280px]">
+          <div className="relative">
             <IconSearch
-              className="absolute left-3 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-white/60"
+              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted"
               stroke={1.5}
             />
             <input
               type="search"
-              placeholder="Search doctors, specialties…"
-              className="h-9 w-full rounded-lg border-0 bg-[rgba(247,244,238,0.15)] pl-10 pr-4 text-xs text-cream-surface placeholder:text-white/60 focus:outline-none focus:ring-1 focus:ring-white/30"
+              placeholder="Search"
+              className="h-[34px] w-full rounded-md border border-[#d6cec4] bg-[#eef3f8] pl-9 pr-3 text-xs text-text-dark placeholder:text-text-muted focus:border-green-primary focus:bg-white focus:outline-none"
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   const q = (e.target as HTMLInputElement).value;
-                  router.push(q ? `/search?q=${encodeURIComponent(q)}` : "/search");
+                  router.push(
+                    q ? `/search?q=${encodeURIComponent(q)}` : "/search"
+                  );
                 }
               }}
             />
           </div>
         </div>
 
-        <div className="ml-auto flex items-center gap-4">
+        <nav className="ml-auto flex items-center gap-0.5 sm:gap-1">
+          {navItems.map(({ href, label, icon: Icon }) => {
+            const active = pathname === href || pathname.startsWith(`${href}/`);
+            const badge = href === "/messages" ? totalUnread : 0;
+            const isMessaging = href === "/messages";
+
+            if (isMessaging) {
+              return (
+                <button
+                  key={href}
+                  type="button"
+                  onClick={() => setWidgetOpen(true)}
+                  className={cn(
+                    "relative flex min-w-[52px] flex-col items-center gap-0.5 rounded px-1 py-1 transition-colors hover:text-text-dark sm:min-w-[64px]",
+                    active || totalUnread > 0
+                      ? "text-text-dark"
+                      : "text-text-muted"
+                  )}
+                  aria-label="Open messaging"
+                >
+                  <Icon size={20} stroke={active ? 2 : 1.5} />
+                  {badge > 0 && (
+                    <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-green-primary px-0.5 text-[9px] font-bold text-white">
+                      {badge > 99 ? "99+" : badge}
+                    </span>
+                  )}
+                  <span className="hidden text-[10px] font-medium sm:block">
+                    {label}
+                  </span>
+                </button>
+              );
+            }
+
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "relative flex min-w-[52px] flex-col items-center gap-0.5 rounded px-1 py-1 transition-colors hover:text-text-dark sm:min-w-[64px]",
+                  active ? "text-text-dark" : "text-text-muted"
+                )}
+              >
+                <Icon size={20} stroke={active ? 2 : 1.5} />
+                <span
+                  className={cn(
+                    "hidden text-[10px] font-medium sm:block",
+                    active && "font-semibold text-text-dark"
+                  )}
+                >
+                  {label}
+                </span>
+                {active && (
+                  <span className="absolute -bottom-[9px] left-1 right-1 hidden h-[2px] rounded-full bg-text-dark sm:block" />
+                )}
+              </Link>
+            );
+          })}
+
           <Link
-            href="/messages"
-            className="relative text-white/80 transition-colors hover:text-white"
-            aria-label="Messages"
-          >
-            <IconMessage size={19} stroke={1.5} />
-            {unread > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 flex h-[16px] min-w-[16px] items-center justify-center rounded-full bg-cream-surface px-1 text-[10px] font-extrabold text-green-primary">
-                {unread > 99 ? "99+" : unread}
-              </span>
+            href="/search"
+            className={cn(
+              "flex min-w-[52px] flex-col items-center gap-0.5 rounded px-1 py-1 sm:min-w-[64px] md:hidden",
+              pathname === "/search" ? "text-text-dark" : "text-text-muted"
             )}
-          </Link>
-          <Link
-            href="/saved"
-            className="relative text-white/80 transition-colors hover:text-white"
-            aria-label="Saved posts"
           >
-            <IconBookmark size={19} stroke={1.5} />
+            <IconSearch size={20} stroke={1.5} />
+            <span className="text-[10px] font-medium">Search</span>
           </Link>
+
           <div className="relative">
             <button
               type="button"
-              className="relative text-white/80 transition-colors hover:text-white"
+              className={cn(
+                "relative flex min-w-[52px] flex-col items-center gap-0.5 rounded px-1 py-1 text-text-muted hover:text-text-dark sm:min-w-[64px]",
+                pathname === "/notifications" && "text-text-dark"
+              )}
               aria-label="Notifications"
-              onClick={() => setShowNotifDropdown((x) => !x)}
+              onClick={() => {
+                setShowUserMenu(false);
+                setShowNotifDropdown((x) => !x);
+              }}
             >
-              <Bell size={19} />
+              <Bell size={20} />
               {notifUnread > 0 && (
-                <span className="absolute -right-2 -top-2 flex min-h-[20px] min-w-[20px] items-center justify-center rounded-full bg-[#ef4444] px-1 text-[10px] font-bold text-white">
+                <span className="absolute right-1 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#c0392b] px-0.5 text-[9px] font-bold text-white">
                   {notifUnread > 99 ? "99+" : notifUnread}
                 </span>
               )}
+              <span className="hidden text-[10px] font-medium sm:block">
+                Notifications
+              </span>
             </button>
             <NotificationDropdown
               open={showNotifDropdown}
@@ -138,62 +191,34 @@ export function MainNav() {
                 setUnreadCount((prev) => Math.max(0, prev - 1));
               }}
               onMarkAllRead={() => {
-                setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+                setNotifications((prev) =>
+                  prev.map((n) => ({ ...n, isRead: true }))
+                );
                 setUnreadCount(0);
               }}
             />
           </div>
+
           <Link
-            href="/connections"
-            className="relative text-white/80 transition-colors hover:text-white"
-            aria-label="Network"
+            href="/saved"
+            className="hidden min-w-[52px] flex-col items-center gap-0.5 rounded px-1 py-1 text-text-muted hover:text-text-dark lg:flex"
           >
-            <IconUsers size={19} stroke={1.5} />
-            <span className="rida-notif-dot" />
+            <IconBookmark size={20} stroke={1.5} />
+            <span className="text-[10px] font-medium">Saved</span>
           </Link>
+
           {user && (
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setShowUserMenu((x) => !x)}
-                className="rounded-lg"
-                aria-label="User menu"
-              >
-                <UserAvatar
-                  name={user.fullName}
-                  size={32}
-                  square
-                  className="!rounded-lg !bg-cream-surface !text-green-primary"
-                />
-              </button>
-              {showUserMenu && (
-                <div className="absolute right-0 top-10 z-50 w-40 rounded-xl border border-[#e5ddd0] bg-[#faf6ef] py-1 text-[#1a1a1a]">
-                  <Link
-                    href="/profile"
-                    className="block px-3 py-2 text-xs hover:bg-[#f2ede3]"
-                    onClick={() => setShowUserMenu(false)}
-                  >
-                    View Profile
-                  </Link>
-                  <Link
-                    href="/settings"
-                    className="block px-3 py-2 text-xs hover:bg-[#f2ede3]"
-                    onClick={() => setShowUserMenu(false)}
-                  >
-                    Settings
-                  </Link>
-                  <button
-                    type="button"
-                    className="block w-full px-3 py-2 text-left text-xs text-[#ef4444] hover:bg-[#f2ede3]"
-                    onClick={() => signOut({ callbackUrl: "/signin" })}
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              )}
-            </div>
+            <UserMenu
+              userId={user.id}
+              fullName={user.fullName}
+              open={showUserMenu}
+              onOpenChange={(open) => {
+                if (open) setShowNotifDropdown(false);
+                setShowUserMenu(open);
+              }}
+            />
           )}
-        </div>
+        </nav>
       </div>
     </header>
   );

@@ -20,3 +20,13 @@ export async function uploadProfilePhoto(
   });
   return result.secure_url;
 }
+
+export async function uploadPostImage(
+  file: string,
+  userId: string
+): Promise<string> {
+  const result = await cloudinary.uploader.upload(file, {
+    folder: `rida/posts/${userId}`,
+  });
+  return result.secure_url;
+}

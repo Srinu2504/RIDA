@@ -1,6 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   IconBookmark,
   IconHeart,
@@ -118,9 +120,12 @@ function PostCard({
   };
 
   return (
-    <article className="rida-card overflow-visible">
+    <article
+      id={`post-${item.post.id}`}
+      className="feed-card scroll-mt-24 overflow-visible"
+    >
       {item.type === "repost" && (
-        <div className="border-b-[0.5px] border-[#e5ddd0] bg-[#f2ede3] px-3.5 py-2 text-[11px] font-semibold text-text-muted">
+        <div className="border-b border-[#ebe6dc] bg-[#f8f6f1] px-3.5 py-2 text-[11px] font-semibold text-text-muted">
           🔁 {item.repostedByName} reposted
         </div>
       )}
@@ -145,8 +150,26 @@ function PostCard({
       </div>
 
       {item.post.imageUrl && (
-        <div className="flex h-[110px] items-center justify-center bg-green-light">
-          <IconPhoto size={32} className="text-green-muted" stroke={1.5} />
+        <div className="relative w-full bg-[#f8f6f1]">
+          {item.post.imageUrl.startsWith("data:") ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={item.post.imageUrl}
+              alt="Post"
+              className="max-h-[420px] w-full object-contain"
+            />
+          ) : (
+            <div className="relative min-h-[120px] w-full">
+              <Image
+                src={item.post.imageUrl}
+                alt="Post"
+                width={560}
+                height={320}
+                className="max-h-[420px] w-full object-contain"
+                unoptimized
+              />
+            </div>
+          )}
         </div>
       )}
 
@@ -220,19 +243,30 @@ function PostCard({
 
 export function PostFeed({
   source = "feed",
+  profileUserId,
   currentUserId = "",
+  emptyMessage,
 }: {
-  source?: "feed" | "saved";
+  source?: "feed" | "saved" | "profile";
+  profileUserId?: string;
   currentUserId?: string;
+  emptyMessage?: string;
 }) {
+  const searchParams = useSearchParams();
+  const highlightPostId = searchParams.get("post");
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [locked, setLocked] = useState(false);
   const hasLoadedRef = useRef(false);
+  const highlightedRef = useRef<string | null>(null);
 
-  const endpoint = useMemo(
-    () => (source === "saved" ? "/api/posts/saved" : "/api/feed"),
-    [source]
-  );
+  const endpoint = useMemo(() => {
+    if (source === "saved") return "/api/posts/saved";
+    if (source === "profile" && profileUserId) {
+      return `/api/users/${profileUserId}/posts`;
+    }
+    return "/api/feed";
+  }, [source, profileUserId]);
 
   const load = useCallback(async () => {
     if (!hasLoadedRef.current) setLoading(true);
@@ -240,6 +274,7 @@ export function PostFeed({
       const res = await fetch(endpoint);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Failed to load feed");
+      setLocked(Boolean(json.locked));
       setItems(json.items ?? []);
       hasLoadedRef.current = true;
     } catch (error) {
@@ -255,14 +290,45 @@ export function PostFeed({
     load().catch(() => {});
   }, [load]);
 
+  useEffect(() => {
+    if (source !== "feed" || !highlightPostId || loading) return;
+    if (highlightedRef.current === highlightPostId) return;
+    const el = document.getElementById(`post-${highlightPostId}`);
+    if (!el) return;
+    highlightedRef.current = highlightPostId;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    el.classList.add("ring-2", "ring-green-primary");
+    const timer = setTimeout(() => {
+      el.classList.remove("ring-2", "ring-green-primary");
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [highlightPostId, loading, items, source]);
+
   if (loading) {
-    return <p className="py-8 text-center text-xs text-text-muted">Loading feed...</p>;
+    return (
+      <p className="py-8 text-center text-xs text-text-muted">
+        {source === "profile" ? "Loading posts…" : "Loading feed…"}
+      </p>
+    );
+  }
+
+  if (locked) {
+    return (
+      <p className="feed-card px-4 py-8 text-center text-xs text-text-muted">
+        Connect to view this user&apos;s posts
+      </p>
+    );
   }
 
   if (items.length === 0) {
     return (
-      <p className="rida-card px-4 py-8 text-center text-xs text-text-muted">
-        {source === "saved" ? "No saved posts yet" : "No posts yet"}
+      <p className="feed-card px-4 py-8 text-center text-xs text-text-muted">
+        {emptyMessage ??
+          (source === "saved"
+            ? "No saved posts yet"
+            : source === "profile"
+              ? "No posts yet"
+              : "No posts yet. Connect with peers or share an update.")}
       </p>
     );
   }

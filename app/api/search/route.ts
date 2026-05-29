@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { and, eq, gte, ilike, inArray, or } from "drizzle-orm";
+import { and, eq, gte, ilike, ne, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { connections, doctorProfiles, users } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
+import { canCreateDoctorProfile } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -20,17 +21,21 @@ export async function GET(req: Request) {
     const gender = searchParams.get("gender");
 
     const conditions = [
-      inArray(users.role, ["PRACTICING_PHYSICIAN", "RETIRED_PHYSICIAN"]),
       eq(users.isProfileComplete, true),
+      ne(doctorProfiles.userId, viewerId),
     ];
 
     if (q) {
       const pattern = `%${q}%`;
       conditions.push(
         or(
+          ilike(users.fullName, pattern),
           ilike(doctorProfiles.firstName, pattern),
           ilike(doctorProfiles.lastName, pattern),
           ilike(doctorProfiles.specialty, pattern),
+          ilike(doctorProfiles.fieldOfStudy, pattern),
+          ilike(doctorProfiles.university, pattern),
+          ilike(doctorProfiles.college, pattern),
           ilike(doctorProfiles.hospitalName, pattern),
           ilike(doctorProfiles.city, pattern)
         )!
@@ -58,11 +63,14 @@ export async function GET(req: Request) {
     const results = await db
       .select({
         userId: doctorProfiles.userId,
+        role: users.role,
         firstName: doctorProfiles.firstName,
         lastName: doctorProfiles.lastName,
         profilePhoto: doctorProfiles.profilePhoto,
         specialty: doctorProfiles.specialty,
         hospitalName: doctorProfiles.hospitalName,
+        university: doctorProfiles.university,
+        college: doctorProfiles.college,
         city: doctorProfiles.city,
         country: doctorProfiles.country,
         yearsOfExperience: doctorProfiles.yearsOfExperience,
@@ -74,33 +82,34 @@ export async function GET(req: Request) {
       .limit(50);
 
     const withConnections = await Promise.all(
-      results.map(async (doctor) => {
-        if (doctor.userId === viewerId) {
-          return { ...doctor, connectionStatus: null };
-        }
-
-        const [conn] = await db
-          .select({ status: connections.status, senderId: connections.senderId })
-          .from(connections)
-          .where(
-            or(
-              and(
-                eq(connections.senderId, viewerId),
-                eq(connections.receiverId, doctor.userId)
-              ),
-              and(
-                eq(connections.senderId, doctor.userId),
-                eq(connections.receiverId, viewerId)
+      results
+        .filter((doctor) => canCreateDoctorProfile(doctor.role))
+        .map(async (doctor) => {
+          const [conn] = await db
+            .select({
+              status: connections.status,
+              senderId: connections.senderId,
+            })
+            .from(connections)
+            .where(
+              or(
+                and(
+                  eq(connections.senderId, viewerId),
+                  eq(connections.receiverId, doctor.userId)
+                ),
+                and(
+                  eq(connections.senderId, doctor.userId),
+                  eq(connections.receiverId, viewerId)
+                )
               )
             )
-          )
-          .limit(1);
+            .limit(1);
 
-        return {
-          ...doctor,
-          connectionStatus: conn?.status ?? null,
-        };
-      })
+          return {
+            ...doctor,
+            connectionStatus: conn?.status ?? null,
+          };
+        })
     );
 
     return NextResponse.json({ doctors: withConnections });

@@ -5,7 +5,8 @@ import type { HeroStripData } from "@/types";
 
 export async function getFeedHeroData(
   userId: string,
-  fullName: string
+  fullName: string,
+  role: string
 ): Promise<HeroStripData> {
   const [profile] = await db
     .select({
@@ -13,6 +14,10 @@ export async function getFeedHeroData(
       lastName: doctorProfiles.lastName,
       specialty: doctorProfiles.specialty,
       hospitalName: doctorProfiles.hospitalName,
+      university: doctorProfiles.university,
+      college: doctorProfiles.college,
+      city: doctorProfiles.city,
+      country: doctorProfiles.country,
       profilePhoto: doctorProfiles.profilePhoto,
     })
     .from(doctorProfiles)
@@ -40,10 +45,15 @@ export async function getFeedHeroData(
 
   return {
     fullName,
+    role,
     firstName: profile?.firstName,
     lastName: profile?.lastName,
     specialty: profile?.specialty,
     hospitalName: profile?.hospitalName ?? undefined,
+    university: profile?.university ?? undefined,
+    college: profile?.college ?? undefined,
+    city: profile?.city ?? undefined,
+    country: profile?.country ?? undefined,
     profilePhoto: profile?.profilePhoto,
     connections: connectionRows.length,
     pending: pendingRows.length,

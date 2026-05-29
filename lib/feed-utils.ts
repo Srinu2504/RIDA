@@ -2,11 +2,11 @@ import { and, eq, or } from "drizzle-orm";
 import { connections } from "@/drizzle/schema";
 import { db } from "@/lib/db";
 import { requireSession } from "@/lib/session";
-import { isClinicalRole } from "@/types";
+import { canCreateDoctorProfile } from "@/types";
 
 export async function requireDoctorSession() {
   const session = await requireSession();
-  if (!isClinicalRole(session.user.role)) {
+  if (!canCreateDoctorProfile(session.user.role)) {
     throw new Error("FORBIDDEN_DOCTOR_ONLY");
   }
   return session;

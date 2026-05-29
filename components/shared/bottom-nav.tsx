@@ -13,7 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const tabs = [
-  { href: "/feed", label: "Feed", icon: IconHome },
+  { href: "/feed", label: "Home", icon: IconHome },
   { href: "/search", label: "Search", icon: IconSearch },
   { href: "/connections", label: "Network", icon: IconUsers },
   { href: "/notifications", label: "Alerts", icon: IconBell },
@@ -26,12 +26,12 @@ export function BottomNav() {
 
   const allTabs = [
     ...tabs,
-    { href: profileHref, label: "Profile", icon: IconUser },
+    { href: profileHref, label: "Me", icon: IconUser },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t-[0.5px] border-cream-border bg-cream-surface md:hidden">
-      <div className="flex justify-around py-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#d6cec4] bg-white md:hidden">
+      <div className="flex justify-around py-1.5">
         {allTabs.map(({ href, label, icon: Icon }) => {
           const active =
             pathname === href ||
@@ -42,11 +42,11 @@ export function BottomNav() {
               href={href}
               className={cn(
                 "flex flex-col items-center gap-0.5 px-2 py-1",
-                active ? "text-green-primary" : "text-text-muted"
+                active ? "text-text-dark" : "text-text-muted"
               )}
             >
-              <Icon size={20} stroke={active ? 2 : 1.5} />
-              <span className="text-[10px] font-semibold">{label}</span>
+              <Icon size={22} stroke={active ? 2 : 1.5} />
+              <span className="text-[10px] font-medium">{label}</span>
             </Link>
           );
         })}
