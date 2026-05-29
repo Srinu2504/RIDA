@@ -18,11 +18,10 @@ interface MessagingState {
   setTotalUnread: (n: number) => void;
   widgetOpen: boolean;
   setWidgetOpen: (open: boolean) => void;
-  toggleWidget: () => void;
   openConversation: (conversationId: string) => void;
 }
 
-export const useMessagingStore = create<MessagingState>((set, get) => ({
+export const useMessagingStore = create<MessagingState>((set) => ({
   activeConversationId: null,
   setActiveConversationId: (id) => set({ activeConversationId: id }),
   conversations: [],
@@ -34,8 +33,6 @@ export const useMessagingStore = create<MessagingState>((set, get) => ({
   setTotalUnread: (n) => set({ totalUnread: n }),
   widgetOpen: false,
   setWidgetOpen: (open) => set({ widgetOpen: open }),
-  toggleWidget: () => set({ widgetOpen: !get().widgetOpen }),
   openConversation: (conversationId) =>
     set({ activeConversationId: conversationId, widgetOpen: true }),
 }));
-

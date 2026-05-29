@@ -220,6 +220,7 @@ export function MainNav() {
             <UserMenu
               userId={user.id}
               fullName={user.fullName}
+              profilePhoto={user.profilePhoto}
               open={showUserMenu}
               onOpenChange={(open) => {
                 if (open) setShowNotifDropdown(false);

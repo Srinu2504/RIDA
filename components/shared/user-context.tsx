@@ -5,6 +5,7 @@ import { createContext, useContext } from "react";
 export interface AppUser {
   id: string;
   fullName: string;
+  profilePhoto?: string | null;
 }
 
 const UserContext = createContext<AppUser | null>(null);

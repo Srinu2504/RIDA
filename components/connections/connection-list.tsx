@@ -3,14 +3,15 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { formatProfileName } from "@/lib/user-display";
 import { RoleLabel } from "@/components/shared/role-label";
 import { cn } from "@/lib/utils";
-import { useMessagingStore } from "@/lib/stores/messaging-store";
 import { respondToConnection } from "@/lib/connection-actions";
+import { useMessagingStore } from "@/lib/stores/messaging-store";
 
 interface ConnectionItem {
   id: string;

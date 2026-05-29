@@ -204,7 +204,12 @@ export function PostComposer({ onPosted }: PostComposerProps) {
       />
 
       <div className="flex items-start gap-2 px-3 py-3">
-        <UserAvatar name={user?.fullName ?? "You"} size={48} />
+        <UserAvatar
+          name={user?.fullName ?? "You"}
+          src={user?.profilePhoto}
+          size={48}
+          className="border border-[#d6cec4]"
+        />
         <div className="min-w-0 flex-1">
           {!expanded ? (
             <button

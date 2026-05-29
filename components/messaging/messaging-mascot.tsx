@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import toast from "react-hot-toast";
-import { IconChevronDown, IconChevronUp, IconMessage } from "@tabler/icons-react";
+import { IconChevronDown } from "@tabler/icons-react";
 import { ConversationList } from "@/components/messaging/ConversationList";
 import { ChatWindow, type ChatMessage } from "@/components/messaging/ChatWindow";
 import { MessageInput } from "@/components/messaging/MessageInput";
@@ -14,7 +15,11 @@ import { useUser } from "@/components/shared/user-context";
 import { getPusherClient } from "@/lib/pusher";
 import { cn } from "@/lib/utils";
 
-export function MessagingWidget() {
+const MASCOT_SRC = "/rida-mascot.png";
+const MASCOT_W = 91;
+const MASCOT_H = 77;
+
+export function MessagingMascot() {
   const user = useUser();
   const userId = user?.id ?? "";
   const pathname = usePathname();
@@ -32,6 +37,7 @@ export function MessagingWidget() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [otherIsTyping, setOtherIsTyping] = useState(false);
+  const [panelVisible, setPanelVisible] = useState(false);
 
   const active = useMemo(
     () => conversations.find((c) => c.id === activeConversationId) ?? null,
@@ -41,20 +47,23 @@ export function MessagingWidget() {
   const hasUnread = totalUnread > 0;
 
   const loadConversations = useCallback(async () => {
-    const res = await fetch("/api/conversations");
+    const res = await fetch("/api/conversations", { cache: "no-store" });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error ?? "Failed to load conversations");
     setConversations(json.conversations ?? []);
   }, [setConversations]);
 
-  const markRead = useCallback(async (conversationId: string) => {
-    await fetch("/api/messages/read", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversationId }),
-    }).catch(() => {});
-    await loadConversations().catch(() => {});
-  }, [loadConversations]);
+  const markRead = useCallback(
+    async (conversationId: string) => {
+      await fetch("/api/messages/read", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId }),
+      }).catch(() => {});
+      await loadConversations().catch(() => {});
+    },
+    [loadConversations]
+  );
 
   const loadMessages = useCallback(async (conversationId: string) => {
     setLoadingMessages(true);
@@ -86,6 +95,14 @@ export function MessagingWidget() {
       pusherClient.unsubscribe(`user-${userId}`);
     };
   }, [userId, loadConversations]);
+
+  useEffect(() => {
+    if (widgetOpen) {
+      const t = requestAnimationFrame(() => setPanelVisible(true));
+      return () => cancelAnimationFrame(t);
+    }
+    setPanelVisible(false);
+  }, [widgetOpen]);
 
   useEffect(() => {
     if (!activeConversationId || !widgetOpen) return;
@@ -136,13 +153,13 @@ export function MessagingWidget() {
     loadConversations().catch(() => {});
   };
 
-  const selectConversation = (id: string) => {
-    setActiveConversationId(id);
+  const closePanel = () => {
+    setPanelVisible(false);
+    setTimeout(() => setWidgetOpen(false), 280);
   };
 
-  const backToList = () => {
-    setActiveConversationId(null);
-    setMessages([]);
+  const openPanel = () => {
+    setWidgetOpen(true);
   };
 
   if (!userId || pathname.startsWith("/messages")) return null;
@@ -150,38 +167,41 @@ export function MessagingWidget() {
   return (
     <div
       className={cn(
-        "fixed z-40 flex flex-col",
-        "bottom-[72px] right-3 sm:bottom-4 sm:right-4",
-        widgetOpen ? "w-[min(100vw-24px,360px)]" : "w-[280px]"
+        "fixed z-40 flex flex-col items-end gap-4",
+        widgetOpen
+          ? "bottom-[5.75rem] right-3 sm:bottom-6 sm:right-5"
+          : "bottom-[4.75rem] right-3 sm:bottom-5 sm:right-4",
+        widgetOpen ? "w-[min(100vw-24px,360px)]" : "w-auto"
       )}
     >
-      {widgetOpen ? (
+      {widgetOpen && (
         <div
           className={cn(
-            "flex max-h-[min(520px,calc(100vh-120px))] flex-col overflow-hidden rounded-t-xl border border-[#d6cec4] shadow-xl",
+            "rida-msg-panel relative z-10 flex w-full max-h-[min(400px,calc(100vh-13rem))] flex-col overflow-hidden rounded-2xl border shadow-2xl",
+            panelVisible ? "rida-msg-panel--visible" : "rida-msg-panel--hidden",
             hasUnread ? "border-green-primary" : "border-[#d6cec4]"
           )}
         >
           <div
             className={cn(
-              "flex shrink-0 items-center justify-between px-3 py-2.5 transition-colors",
+              "flex shrink-0 items-center justify-between gap-2 px-3 py-2.5",
               hasUnread
                 ? "bg-green-primary text-white"
                 : "border-b border-[#d6cec4] bg-white text-text-dark"
             )}
           >
             <div className="flex min-w-0 items-center gap-2">
-              <IconMessage size={18} stroke={2} />
+              <Image
+                src={MASCOT_SRC}
+                alt=""
+                width={25}
+                height={21}
+                className="h-6 w-7 object-contain"
+                aria-hidden
+              />
               <span className="truncate text-sm font-bold">Messaging</span>
               {hasUnread && (
-                <span
-                  className={cn(
-                    "flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold",
-                    hasUnread
-                      ? "bg-white text-green-primary"
-                      : "bg-green-primary text-white"
-                  )}
-                >
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-green-primary">
                   {totalUnread > 99 ? "99+" : totalUnread}
                 </span>
               )}
@@ -199,8 +219,8 @@ export function MessagingWidget() {
               </Link>
               <button
                 type="button"
-                aria-label="Minimize messaging"
-                onClick={() => setWidgetOpen(false)}
+                aria-label="Close messages"
+                onClick={closePanel}
                 className={cn(
                   "rounded p-1",
                   hasUnread ? "hover:bg-white/15" : "hover:bg-[#f3f2ef]"
@@ -217,7 +237,10 @@ export function MessagingWidget() {
                 <div className="flex items-center gap-2 border-b border-[#e5ddd0] px-2 py-1.5">
                   <button
                     type="button"
-                    onClick={backToList}
+                    onClick={() => {
+                      setActiveConversationId(null);
+                      setMessages([]);
+                    }}
                     className="rounded px-2 py-1 text-[11px] font-semibold text-green-primary hover:bg-green-pale"
                   >
                     ← All
@@ -226,7 +249,7 @@ export function MessagingWidget() {
                     {active.otherDoctor.name}
                   </span>
                 </div>
-                <div className="h-[340px] min-h-0">
+                <div className="h-[280px] min-h-0 sm:h-[300px]">
                   {loadingMessages ? (
                     <div className="flex h-full items-center justify-center bg-cream-bg">
                       <p className="text-xs text-text-muted">Loading…</p>
@@ -246,39 +269,60 @@ export function MessagingWidget() {
                 />
               </>
             ) : (
-              <div className="h-[400px] min-h-0">
+              <div className="h-[340px] min-h-0 sm:h-[360px]">
                 <ConversationList
                   conversations={conversations}
                   activeId={activeConversationId}
-                  onSelect={selectConversation}
+                  onSelect={setActiveConversationId}
                 />
               </div>
             )}
           </div>
         </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setWidgetOpen(true)}
+      )}
+
+      <button
+        type="button"
+        onClick={() => (widgetOpen ? closePanel() : openPanel())}
+        aria-label={
+          widgetOpen
+            ? "Close messages"
+            : hasUnread
+              ? `Open messages, ${totalUnread} unread`
+              : "Open messages"
+        }
+        aria-expanded={widgetOpen}
+        className={cn(
+          "rida-mascot-link relative z-20 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-primary focus-visible:ring-offset-2",
+          widgetOpen && "rida-mascot-link--open"
+        )}
+      >
+        <span
           className={cn(
-            "flex w-full items-center justify-between gap-2 rounded-t-xl border px-4 py-3 shadow-lg transition-colors",
-            hasUnread
-              ? "border-green-primary bg-green-primary text-white hover:bg-[#255a43]"
-              : "border-[#d6cec4] bg-white text-text-dark hover:bg-[#f9f7f4]"
+            "rida-mascot-glow relative block transition-shadow duration-300",
+            hasUnread && !widgetOpen
+              ? "rida-mascot-glow--active shadow-[0_0_0_4px_#2d6a4f,0_8px_28px_rgba(45,106,79,0.4)]"
+              : "drop-shadow-[0_6px_14px_rgba(0,0,0,0.14)]"
           )}
         >
-          <div className="flex items-center gap-2">
-            <IconMessage size={20} stroke={2} />
-            <span className="text-sm font-bold">Messaging</span>
-            {hasUnread && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-green-primary">
-                {totalUnread > 99 ? "99+" : totalUnread}
-              </span>
-            )}
-          </div>
-          <IconChevronUp size={18} />
-        </button>
-      )}
+          <span className="rida-mascot-float block">
+            <Image
+              src={MASCOT_SRC}
+              alt="RIDA messaging assistant"
+              width={MASCOT_W}
+              height={MASCOT_H}
+              className="rida-mascot-img h-[62px] w-[77px] object-contain sm:h-[73px] sm:w-[91px]"
+              priority
+            />
+          </span>
+
+          {hasUnread && !widgetOpen && (
+            <span className="absolute right-0 top-0 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-green-primary px-0.5 text-[9px] font-bold text-white shadow-sm">
+              {totalUnread > 99 ? "99+" : totalUnread}
+            </span>
+          )}
+        </span>
+      </button>
     </div>
   );
 }

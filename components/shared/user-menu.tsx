@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 interface UserMenuProps {
   userId: string;
   fullName: string;
+  profilePhoto?: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -17,6 +18,7 @@ interface UserMenuProps {
 export function UserMenu({
   userId,
   fullName,
+  profilePhoto,
   open,
   onOpenChange,
 }: UserMenuProps) {
@@ -60,7 +62,12 @@ export function UserMenu({
           open ? "text-text-dark" : "text-text-muted hover:text-text-dark"
         )}
       >
-        <UserAvatar name={fullName} size={24} className="!rounded-full" />
+        <UserAvatar
+          name={fullName}
+          src={profilePhoto}
+          size={28}
+          className="!rounded-full border border-[#d6cec4]"
+        />
         <span className="hidden items-center gap-0.5 text-[10px] font-medium sm:flex">
           Me
           <span className="text-[8px]">▾</span>
