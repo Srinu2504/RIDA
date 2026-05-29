@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 export default function RetiredSetupPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-cream-bg px-4 py-10">

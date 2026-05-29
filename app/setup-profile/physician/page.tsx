@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { ProfileWizard } from "@/components/profile/profile-wizard";
 
 export default function PhysicianSetupPage() {
