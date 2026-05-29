@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   IconBookmark,
   IconHeart,
@@ -9,7 +9,6 @@ import {
   IconPhoto,
   IconShare,
 } from "@tabler/icons-react";
-import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { CommentSection } from "@/components/feed/CommentSection";
@@ -219,10 +218,16 @@ function PostCard({
   );
 }
 
-export function PostFeed({ source = "feed" }: { source?: "feed" | "saved" }) {
-  const { data: session } = useSession();
+export function PostFeed({
+  source = "feed",
+  currentUserId = "",
+}: {
+  source?: "feed" | "saved";
+  currentUserId?: string;
+}) {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const hasLoadedRef = useRef(false);
 
   const endpoint = useMemo(
     () => (source === "saved" ? "/api/posts/saved" : "/api/feed"),
@@ -230,12 +235,13 @@ export function PostFeed({ source = "feed" }: { source?: "feed" | "saved" }) {
   );
 
   const load = useCallback(async () => {
-    setLoading(true);
+    if (!hasLoadedRef.current) setLoading(true);
     try {
       const res = await fetch(endpoint);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Failed to load feed");
       setItems(json.items ?? []);
+      hasLoadedRef.current = true;
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to load feed";
       toast.error(msg);
@@ -245,6 +251,7 @@ export function PostFeed({ source = "feed" }: { source?: "feed" | "saved" }) {
   }, [endpoint]);
 
   useEffect(() => {
+    hasLoadedRef.current = false;
     load().catch(() => {});
   }, [load]);
 
@@ -266,7 +273,7 @@ export function PostFeed({ source = "feed" }: { source?: "feed" | "saved" }) {
         <PostCard
           key={`${item.type}-${item.type === "repost" ? `${item.repostedByName}-` : ""}${item.post.id}`}
           item={item}
-          currentUserId={session?.user?.id ?? ""}
+          currentUserId={currentUserId}
           onRefresh={load}
         />
       ))}

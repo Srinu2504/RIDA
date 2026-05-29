@@ -15,7 +15,6 @@ import {
   SPECIALTIES,
   formatZodErrors,
 } from "@/lib/validations";
-import type { z } from "zod";
 import { useProfileWizardStore } from "@/lib/stores/profile-wizard-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

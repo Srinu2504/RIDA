@@ -1,6 +1,6 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { useUser } from "@/components/shared/user-context";
 import {
   IconArticle,
   IconCamera,
@@ -9,13 +9,13 @@ import {
 import { UserAvatar } from "@/components/shared/user-avatar";
 
 export function PostComposer() {
-  const { data: session } = useSession();
+  const user = useUser();
 
   return (
     <div className="rida-card px-3.5 py-3">
       <div className="flex items-center gap-3">
         <UserAvatar
-          name={session?.user?.fullName ?? "You"}
+          name={user?.fullName ?? "You"}
           size={36}
         />
         <div className="flex-1 rounded-[20px] border-[0.5px] border-[#d8d0c0] bg-cream-input px-4 py-2.5 text-xs text-text-faint">

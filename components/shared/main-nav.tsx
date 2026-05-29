@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { signOut, useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
+import { useUser } from "@/components/shared/user-context";
 import {
   IconBookmark,
   IconMessage,
@@ -18,7 +19,7 @@ import { NotificationDropdown } from "@/components/notifications/NotificationDro
 
 export function MainNav() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const user = useUser();
   const [unread, setUnread] = useState(0);
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -27,11 +28,11 @@ export function MainNav() {
     notifications,
     setNotifications,
     setUnreadCount,
-  } = useNotifications(session?.user?.id ?? "");
+  } = useNotifications(user?.id ?? "");
 
   useEffect(() => {
-    if (!session?.user?.id) return;
-    const userId = session.user.id;
+    if (!user?.id) return;
+    const userId = user.id;
     const pusherClient = getPusherClient();
     if (!pusherClient) return;
 
@@ -49,10 +50,10 @@ export function MainNav() {
     return () => {
       pusherClient.unsubscribe(`user-${userId}`);
     };
-  }, [session?.user?.id]);
+  }, [user?.id]);
 
   useEffect(() => {
-    if (!showNotifDropdown || !session?.user?.id) return;
+    if (!showNotifDropdown || !user?.id) return;
     fetch("/api/notifications?page=1&limit=5")
       .then((r) => r.json())
       .then((d) => {
@@ -60,7 +61,7 @@ export function MainNav() {
         setUnreadCount(d.unreadCount ?? 0);
       })
       .catch(() => {});
-  }, [showNotifDropdown, session?.user?.id, setNotifications, setUnreadCount]);
+  }, [showNotifDropdown, user?.id, setNotifications, setUnreadCount]);
 
   return (
     <header className="sticky top-0 z-50 h-14 bg-green-primary">
@@ -150,7 +151,7 @@ export function MainNav() {
             <IconUsers size={19} stroke={1.5} />
             <span className="rida-notif-dot" />
           </Link>
-          {session?.user && (
+          {user && (
             <div className="relative">
               <button
                 type="button"
@@ -159,7 +160,7 @@ export function MainNav() {
                 aria-label="User menu"
               >
                 <UserAvatar
-                  name={session.user.fullName}
+                  name={user.fullName}
                   size={32}
                   square
                   className="!rounded-lg !bg-cream-surface !text-green-primary"

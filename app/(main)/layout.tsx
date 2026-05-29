@@ -1,16 +1,25 @@
+import { AppUserProvider } from "@/components/shared/user-context";
+import { getSession } from "@/lib/session";
 import { MainNav } from "@/components/shared/main-nav";
 import { BottomNav } from "@/components/shared/bottom-nav";
 
-export default function MainLayout({
+export default async function MainLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getSession();
+  const user = session?.user?.id
+    ? { id: session.user.id, fullName: session.user.fullName }
+    : null;
+
   return (
-    <div className="min-h-screen bg-cream-bg pb-16 md:pb-0">
-      <MainNav />
-      {children}
-      <BottomNav />
-    </div>
+    <AppUserProvider user={user}>
+      <div className="min-h-screen bg-cream-bg pb-16 md:pb-0">
+        <MainNav />
+        {children}
+        <BottomNav />
+      </div>
+    </AppUserProvider>
   );
 }

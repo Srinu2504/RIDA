@@ -43,6 +43,17 @@ declare module "next-auth/jwt" {
   }
 }
 
+export interface HeroStripData {
+  fullName: string;
+  firstName?: string;
+  lastName?: string;
+  specialty?: string;
+  hospitalName?: string;
+  profilePhoto?: string | null;
+  connections: number;
+  pending: number;
+}
+
 export interface DoctorSearchResult {
   userId: string;
   firstName: string;

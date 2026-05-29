@@ -1,56 +1,53 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { eq, ne, and } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { doctorProfiles, users } from "@/drizzle/schema";
-import { eq, ne, and } from "drizzle-orm";
 import { HeroStrip } from "@/components/shared/hero-strip";
-import { FeedTabs } from "@/components/shared/feed-tabs";
-import { PostComposer } from "@/components/feed/post-composer";
-import { PostFeed } from "@/components/feed/post-card";
-import { FeedSidebar } from "@/components/feed/feed-sidebar";
+import { FeedShell } from "@/components/feed/feed-shell";
+import { getFeedHeroData } from "@/lib/feed-hero";
+import { getSession } from "@/lib/session";
 import type { DoctorSearchResult } from "@/types";
 
 export default async function FeedPage() {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
+  const userId = session?.user?.id;
 
-  const suggestions = await db
-    .select({
-      userId: doctorProfiles.userId,
-      firstName: doctorProfiles.firstName,
-      lastName: doctorProfiles.lastName,
-      profilePhoto: doctorProfiles.profilePhoto,
-      specialty: doctorProfiles.specialty,
-      hospitalName: doctorProfiles.hospitalName,
-      city: doctorProfiles.city,
-      country: doctorProfiles.country,
-      yearsOfExperience: doctorProfiles.yearsOfExperience,
-      gender: doctorProfiles.gender,
-    })
-    .from(doctorProfiles)
-    .innerJoin(users, eq(users.id, doctorProfiles.userId))
-    .where(
-      session?.user?.id
-        ? and(
-            eq(users.isProfileComplete, true),
-            ne(doctorProfiles.userId, session.user.id)
-          )
-        : eq(users.isProfileComplete, true)
-    )
-    .limit(6);
+  const [hero, suggestions] = await Promise.all([
+    userId
+      ? getFeedHeroData(userId, session.user.fullName)
+      : Promise.resolve(null),
+    db
+      .select({
+        userId: doctorProfiles.userId,
+        firstName: doctorProfiles.firstName,
+        lastName: doctorProfiles.lastName,
+        profilePhoto: doctorProfiles.profilePhoto,
+        specialty: doctorProfiles.specialty,
+        hospitalName: doctorProfiles.hospitalName,
+        city: doctorProfiles.city,
+        country: doctorProfiles.country,
+        yearsOfExperience: doctorProfiles.yearsOfExperience,
+        gender: doctorProfiles.gender,
+      })
+      .from(doctorProfiles)
+      .innerJoin(users, eq(users.id, doctorProfiles.userId))
+      .where(
+        userId
+          ? and(
+              eq(users.isProfileComplete, true),
+              ne(doctorProfiles.userId, userId)
+            )
+          : eq(users.isProfileComplete, true)
+      )
+      .limit(6),
+  ]);
 
   return (
     <>
-      <HeroStrip />
-      <FeedTabs />
-      <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-3.5 px-4 py-3.5 md:px-[22px] lg:grid-cols-[1fr_200px]">
-        <div className="flex min-w-0 flex-col gap-3.5">
-          <PostComposer />
-          <PostFeed />
-        </div>
-        <FeedSidebar
-          suggestions={suggestions as DoctorSearchResult[]}
-        />
-      </div>
+      {hero && <HeroStrip data={hero} />}
+      <FeedShell
+        currentUserId={userId ?? ""}
+        suggestions={suggestions as DoctorSearchResult[]}
+      />
     </>
   );
 }

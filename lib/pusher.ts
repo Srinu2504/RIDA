@@ -8,10 +8,17 @@ export const pusherServer = new Pusher({
   useTLS: true,
 });
 
+import type PusherJs from "pusher-js";
+
+let pusherClient: PusherJs | null = null;
+
 export const getPusherClient = () => {
   if (typeof window === "undefined") return null;
-  const PusherClient = require("pusher-js");
-  return new PusherClient(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
-    cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
-  });
+  if (!pusherClient) {
+    const PusherClient = require("pusher-js");
+    pusherClient = new PusherClient(process.env.NEXT_PUBLIC_PUSHER_KEY!, {
+      cluster: process.env.NEXT_PUBLIC_PUSHER_CLUSTER!,
+    });
+  }
+  return pusherClient;
 };

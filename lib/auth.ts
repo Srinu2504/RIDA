@@ -64,7 +64,7 @@ export const authOptions: NextAuthOptions = {
         token.isProfileComplete = session.isProfileComplete as boolean;
       }
 
-      if (token.id && trigger !== "update") {
+      if (token.id && (user || trigger === "update")) {
         const [dbUser] = await db
           .select({
             isProfileComplete: users.isProfileComplete,

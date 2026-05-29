@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { DoctorCard } from "@/components/search/doctor-card";
@@ -53,8 +53,12 @@ export default function SearchPageClient() {
     }
   }, [q, specialty, city, country, minExperience, gender]);
 
+  const initialLoad = useRef(true);
+
   useEffect(() => {
-    search();
+    if (!initialLoad.current) return;
+    initialLoad.current = false;
+    search().catch(() => {});
   }, [search]);
 
   const handleConnect = async (receiverId: string) => {

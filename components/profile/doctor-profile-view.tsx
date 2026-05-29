@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useUser } from "@/components/shared/user-context";
 import toast from "react-hot-toast";
 import {
   IconAward,
@@ -43,7 +43,7 @@ interface ProfileData {
 }
 
 export function DoctorProfileView({ userId }: { userId: string }) {
-  const { data: session } = useSession();
+  const user = useUser();
   const router = useRouter();
   const [data, setData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -98,7 +98,7 @@ export function DoctorProfileView({ userId }: { userId: string }) {
   const { profile } = data;
   const limited = profile.limited;
   const name = `Dr. ${profile.firstName} ${profile.lastName}`;
-  const isSelf = session?.user?.id === userId;
+  const isSelf = user?.id === userId;
   const isConnected = data.connectionStatus === "ACCEPTED";
   const location = [profile.city, profile.state, profile.country]
     .filter(Boolean)

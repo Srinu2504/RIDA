@@ -1,9 +1,10 @@
+import { cache } from "react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
-export async function getSession() {
+export const getSession = cache(async () => {
   return getServerSession(authOptions);
-}
+});
 
 export async function requireSession() {
   const session = await getSession();

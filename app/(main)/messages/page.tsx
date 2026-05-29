@@ -8,11 +8,11 @@ import { ChatWindow, type ChatMessage } from "@/components/messaging/ChatWindow"
 import { MessageInput } from "@/components/messaging/MessageInput";
 import { useConversation } from "@/hooks/useConversation";
 import { useMessagingStore, type ConversationListItem } from "@/lib/stores/messaging-store";
-import { useSession } from "next-auth/react";
+import { useUser } from "@/components/shared/user-context";
 
 export default function MessagesPage() {
-  const { data: session } = useSession();
-  const userId = session?.user?.id ?? "";
+  const user = useUser();
+  const userId = user?.id ?? "";
   const router = useRouter();
   const params = useSearchParams();
 

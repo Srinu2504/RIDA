@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useUser } from "@/components/shared/user-context";
 import { cn } from "@/lib/utils";
 
 const tabs = [
@@ -14,10 +14,8 @@ const tabs = [
 
 export function FeedTabs() {
   const pathname = usePathname();
-  const { data: session } = useSession();
-  const profileHref = session?.user
-    ? `/profile/${session.user.id}`
-    : "/feed";
+  const user = useUser();
+  const profileHref = user ? `/profile/${user.id}` : "/feed";
 
   const allTabs = [...tabs, { href: profileHref, label: "Profile" }];
 
