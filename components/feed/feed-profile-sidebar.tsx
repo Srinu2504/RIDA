@@ -8,7 +8,8 @@ import {
   IconUsers,
 } from "@tabler/icons-react";
 import { UserAvatar } from "@/components/shared/user-avatar";
-import { formatProfileName, formatRoleLabel } from "@/lib/user-display";
+import { formatProfileName } from "@/lib/user-display";
+import { RoleLabel } from "@/components/shared/role-label";
 import type { HeroStripData } from "@/types";
 
 export function FeedProfileSidebar({
@@ -22,11 +23,6 @@ export function FeedProfileSidebar({
     data.firstName && data.lastName && data.role
       ? formatProfileName(data.role, data.firstName, data.lastName)
       : data.fullName;
-
-  const headline =
-    data.role === "MEDICAL_STUDENT"
-      ? formatRoleLabel(data.role)
-      : data.specialty;
 
   const subtitle =
     data.role === "MEDICAL_STUDENT"
@@ -67,12 +63,13 @@ export function FeedProfileSidebar({
             <h2 className="text-sm font-bold leading-tight text-text-dark hover:text-green-primary hover:underline">
               {name}
             </h2>
-            {headline && (
-              <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-text-mid">
-                {headline}
+            <RoleLabel role={data.role} className="mt-1 text-[11px]" />
+            {data.specialty && (
+              <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-text-mid">
+                {data.specialty}
               </p>
             )}
-            {subtitle && headline !== subtitle && (
+            {subtitle && (
               <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-text-muted">
                 {subtitle}
               </p>

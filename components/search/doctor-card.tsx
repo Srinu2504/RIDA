@@ -4,7 +4,8 @@ import Link from "next/link";
 import Image from "next/image";
 import type { DoctorSearchResult } from "@/types";
 import { UserAvatar } from "@/components/shared/user-avatar";
-import { formatProfileName, formatRoleLabel } from "@/lib/user-display";
+import { formatProfileName } from "@/lib/user-display";
+import { RoleLabel } from "@/components/shared/role-label";
 import { cn } from "@/lib/utils";
 
 interface DoctorCardProps {
@@ -53,11 +54,7 @@ export function DoctorCard({
         >
           {name}
         </Link>
-        {doctor.role === "MEDICAL_STUDENT" && (
-          <p className="mt-0.5 text-[10px] font-semibold text-text-muted">
-            {formatRoleLabel(doctor.role)}
-          </p>
-        )}
+        <RoleLabel role={doctor.role} className="mt-0.5" />
         <p className="mt-0.5 text-[10px] font-bold text-green-primary">
           {doctor.specialty}
         </p>

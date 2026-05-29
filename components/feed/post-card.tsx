@@ -13,6 +13,8 @@ import {
 } from "@tabler/icons-react";
 import { toast } from "sonner";
 import { UserAvatar } from "@/components/shared/user-avatar";
+import { RoleLabel } from "@/components/shared/role-label";
+import { formatProfileName } from "@/lib/user-display";
 import { CommentSection } from "@/components/feed/CommentSection";
 import { ShareDropdown } from "@/components/feed/ShareDropdown";
 import { usePost } from "@/hooks/usePost";
@@ -39,6 +41,9 @@ interface FeedItem {
     repostCount: number;
     createdAt: string;
     authorName: string;
+    authorRole?: string | null;
+    authorFirstName?: string | null;
+    authorLastName?: string | null;
     profilePhoto?: string | null;
     specialty?: string | null;
     hospitalName?: string | null;
@@ -89,6 +94,17 @@ function PostCard({
 
   const tagStyle = TAG_STYLES[item.post.tag] ?? TAG_STYLES.Update;
 
+  const authorDisplayName =
+    item.post.authorFirstName &&
+    item.post.authorLastName &&
+    item.post.authorRole
+      ? formatProfileName(
+          item.post.authorRole,
+          item.post.authorFirstName,
+          item.post.authorLastName
+        )
+      : item.post.authorName;
+
   const toggleLike = async () => {
     setHeartBounce(true);
     setTimeout(() => setHeartBounce(false), 200);
@@ -131,15 +147,20 @@ function PostCard({
       )}
 
       <header className="flex items-start gap-3 px-3.5 pb-3 pt-3.5">
-        <UserAvatar name={item.post.authorName} src={item.post.profilePhoto} size={38} />
+        <UserAvatar name={authorDisplayName} src={item.post.profilePhoto} size={38} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[13px] font-bold text-text-dark">{item.post.authorName}</span>
+            <span className="text-[13px] font-bold text-text-dark">
+              {authorDisplayName}
+            </span>
             <span className={`rida-tag ${tagStyle.bg} ${tagStyle.text}`}>{item.post.tag}</span>
           </div>
+          <RoleLabel role={item.post.authorRole} />
           <p className="text-[10px] text-text-muted">
-            {item.post.specialty ?? "Doctor"}
-            {item.post.hospitalName ? ` · ${item.post.hospitalName}` : ""}
+            {item.post.specialty ?? ""}
+            {item.post.hospitalName
+              ? `${item.post.specialty ? " · " : ""}${item.post.hospitalName}`
+              : ""}
           </p>
         </div>
         <span className="shrink-0 text-[10px] text-text-faint">{relativeTime(item.post.createdAt)}</span>

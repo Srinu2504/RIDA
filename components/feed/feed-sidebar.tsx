@@ -5,7 +5,8 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import type { ConnectionStatus, DoctorSearchResult } from "@/types";
 import { UserAvatar } from "@/components/shared/user-avatar";
-import { formatProfileName, formatRoleLabel } from "@/lib/user-display";
+import { formatProfileName } from "@/lib/user-display";
+import { RoleLabel } from "@/components/shared/role-label";
 import { SPECIALTIES } from "@/lib/validations";
 import { RidaNewsPanel } from "@/components/feed/rida-news-panel";
 import { cn } from "@/lib/utils";
@@ -99,11 +100,7 @@ export function FeedSidebar({
                     doc.lastName
                   )}
                 </Link>
-                {doc.role === "MEDICAL_STUDENT" && (
-                  <p className="truncate text-[10px] font-semibold text-text-muted">
-                    {formatRoleLabel(doc.role)}
-                  </p>
-                )}
+                <RoleLabel role={doc.role} className="truncate" />
                 <p className="truncate text-[10px] text-text-muted">
                   {doc.specialty}
                 </p>

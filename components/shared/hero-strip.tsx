@@ -1,7 +1,8 @@
 "use client";
 
 import { UserAvatar } from "@/components/shared/user-avatar";
-import { formatProfileName, formatRoleLabel } from "@/lib/user-display";
+import { formatProfileName } from "@/lib/user-display";
+import { RoleLabel } from "@/components/shared/role-label";
 import type { HeroStripData } from "@/types";
 
 export function HeroStrip({ data }: { data: HeroStripData }) {
@@ -29,11 +30,7 @@ export function HeroStrip({ data }: { data: HeroStripData }) {
           />
           <div>
             <h1 className="text-base font-extrabold text-text-dark">{name}</h1>
-            {data.role === "MEDICAL_STUDENT" && (
-              <p className="text-[11px] font-semibold text-text-muted">
-                {formatRoleLabel(data.role)}
-              </p>
-            )}
+            <RoleLabel role={data.role} className="text-[11px]" />
             {subtitle && (
               <p className="text-[11px] text-text-muted">{subtitle}</p>
             )}

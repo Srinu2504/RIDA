@@ -14,7 +14,8 @@ import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PostFeed } from "@/components/feed/post-card";
-import { formatProfileName, formatRoleLabel } from "@/lib/user-display";
+import { formatProfileName } from "@/lib/user-display";
+import { RoleLabel } from "@/components/shared/role-label";
 import { useMessagingStore } from "@/lib/stores/messaging-store";
 
 interface DoctorProfile {
@@ -139,9 +140,7 @@ export function DoctorProfileView({ userId }: { userId: string }) {
             </div>
             <div className="pt-1">
               <h1 className="text-lg font-extrabold text-text-dark">{name}</h1>
-              <p className="text-[11px] font-semibold text-text-muted">
-                {formatRoleLabel(profileUser.role)}
-              </p>
+              <RoleLabel role={profileUser.role} className="text-[11px]" />
               <p className="text-[13px] font-bold text-green-primary">
                 {isStudent
                   ? profile.fieldOfStudy || profile.specialty

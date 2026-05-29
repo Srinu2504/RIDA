@@ -6,7 +6,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/shared/user-avatar";
-import { formatProfileName, formatRoleLabel } from "@/lib/user-display";
+import { formatProfileName } from "@/lib/user-display";
+import { RoleLabel } from "@/components/shared/role-label";
 import { cn } from "@/lib/utils";
 import { useMessagingStore } from "@/lib/stores/messaging-store";
 
@@ -135,11 +136,7 @@ export function ConnectionList() {
                     >
                       {name}
                     </Link>
-                    {item.otherUser.role === "MEDICAL_STUDENT" && (
-                      <p className="text-[10px] font-semibold text-text-muted">
-                        {formatRoleLabel(item.otherUser.role)}
-                      </p>
-                    )}
+                    <RoleLabel role={item.otherUser.role} />
                     {item.profile?.specialty && (
                       <p className="text-[10px] font-bold text-green-primary">
                         {item.profile.specialty}
