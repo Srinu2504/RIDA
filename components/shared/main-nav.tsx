@@ -190,6 +190,15 @@ export function MainNav() {
                 );
                 setUnreadCount((prev) => Math.max(0, prev - 1));
               }}
+              onDismissed={(id) => {
+                setNotifications((prev) => {
+                  const target = prev.find((n) => n.id === id);
+                  if (target && !target.isRead) {
+                    setUnreadCount((c) => Math.max(0, c - 1));
+                  }
+                  return prev.filter((n) => n.id !== id);
+                });
+              }}
               onMarkAllRead={() => {
                 setNotifications((prev) =>
                   prev.map((n) => ({ ...n, isRead: true }))

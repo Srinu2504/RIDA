@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { doctorProfiles, notifications, users } from "@/drizzle/schema";
+import { connections, doctorProfiles, notifications, users } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
 import { getNotificationIcon, getNotificationLink, getNotificationText } from "@/lib/notification-text";
 
@@ -49,8 +49,28 @@ export async function GET(req: Request) {
     const hasMore = items.length > limit;
     const pageItems = hasMore ? items.slice(0, limit) : items;
 
+    const requestConnectionIds = pageItems
+      .filter((i) => i.type === "connection_request" && i.connectionId)
+      .map((i) => i.connectionId as string);
+
+    const pendingConnectionIds = new Set<string>();
+    if (requestConnectionIds.length > 0) {
+      const rows = await db
+        .select({ id: connections.id, status: connections.status })
+        .from(connections)
+        .where(inArray(connections.id, requestConnectionIds));
+      for (const row of rows) {
+        if (row.status === "PENDING") pendingConnectionIds.add(row.id);
+      }
+    }
+
+    const visibleItems = pageItems.filter((item) => {
+      if (item.type !== "connection_request" || !item.connectionId) return true;
+      return pendingConnectionIds.has(item.connectionId);
+    });
+
     return NextResponse.json({
-      notifications: pageItems.map((item) => ({
+      notifications: visibleItems.map((item) => ({
         ...item,
         actor: {
           id: item.actorId,

@@ -46,17 +46,47 @@ export function useNotifications(userId: string) {
 
     channel.bind(
       "notifications-read",
-      ({ notificationId }: { notificationId: string | "all" }) => {
+      (payload: {
+        notificationId: string | "all";
+        connectionId?: string;
+      }) => {
+        const { notificationId, connectionId } = payload;
+
+        if (notificationId === "connection-handled" && connectionId) {
+          setNotifications((prev) => {
+            const removed = prev.filter(
+              (n) =>
+                n.type === "connection_request" &&
+                n.connectionId === connectionId &&
+                !n.isRead
+            ).length;
+            if (removed > 0) {
+              setUnreadCount((c) => Math.max(0, c - removed));
+            }
+            return prev.filter(
+              (n) =>
+                !(
+                  n.type === "connection_request" &&
+                  n.connectionId === connectionId
+                )
+            );
+          });
+          return;
+        }
+
         if (notificationId === "all") {
           setUnreadCount(0);
           setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
         } else {
-          setUnreadCount((prev) => Math.max(0, prev - 1));
-          setNotifications((prev) =>
-            prev.map((n) =>
+          setNotifications((prev) => {
+            const target = prev.find((n) => n.id === notificationId);
+            if (target && !target.isRead) {
+              setUnreadCount((c) => Math.max(0, c - 1));
+            }
+            return prev.map((n) =>
               n.id === notificationId ? { ...n, isRead: true } : n
-            )
-          );
+            );
+          });
         }
       }
     );

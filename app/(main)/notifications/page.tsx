@@ -1,11 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import { PageBackHeader } from "@/components/shared/page-back-header";
-import { UserAvatar } from "@/components/shared/user-avatar";
-import { ConnectionRequestActions } from "@/components/connections/connection-request-actions";
+import { NotificationItem } from "@/components/notifications/notification-item";
 import { type AppNotification, useNotifications } from "@/hooks/useNotifications";
 
 type Filter = "all" | "unread" | "likes" | "comments" | "connections" | "messages";
@@ -33,7 +31,6 @@ function isMatch(filter: Filter, n: AppNotification) {
 }
 
 export default function NotificationsPage() {
-  const router = useRouter();
   const [userId, setUserId] = useState("");
   const { notifications, setNotifications, setUnreadCount } = useNotifications(userId);
   const [allItems, setAllItems] = useState<AppNotification[]>([]);
@@ -136,74 +133,46 @@ export default function NotificationsPage() {
           <div key={group}>
             <p className="mb-2 text-xs font-bold text-text-dark">{group}</p>
             <div className="space-y-2">
-              {items.map((n) => {
-                const isConnectionRequest =
-                  n.type === "connection_request" && n.connectionId;
-
-                return (
-                  <div
-                    key={n.id}
-                    className={`w-full rounded-xl border border-[#e5ddd0] px-3 py-3 ${
-                      n.isRead
-                        ? "bg-[#faf6ef]"
-                        : "border-l-4 border-l-[#2d6a4f] bg-[#f0f7f4]"
-                    }`}
-                  >
-                    <div className="flex items-start gap-2">
-                      <UserAvatar
-                        name={n.actor?.name ?? "User"}
-                        src={n.actor?.avatar}
-                        size={30}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs text-text-mid">{n.text}</p>
-                        <p className="text-[10px] text-text-muted">
-                          {new Date(n.createdAt).toLocaleString()}
-                        </p>
-                      </div>
-                      {isConnectionRequest ? (
-                        <ConnectionRequestActions
-                          connectionId={n.connectionId!}
-                          notificationId={n.id}
-                          onDone={() => {
-                            setAllItems((prev) =>
-                              prev.filter((x) => x.id !== n.id)
-                            );
-                            setUnreadCount((c) =>
-                              n.isRead ? c : Math.max(0, c - 1)
-                            );
-                          }}
-                        />
-                      ) : (
-                        <button
-                          type="button"
-                          className="shrink-0 text-[10px] font-semibold text-green-primary hover:underline"
-                          onClick={async () => {
-                            if (!n.isRead) {
-                              await fetch("/api/notifications/read", {
-                                method: "POST",
-                                headers: {
-                                  "Content-Type": "application/json",
-                                },
-                                body: JSON.stringify({ notificationId: n.id }),
-                              });
-                              setAllItems((prev) =>
-                                prev.map((x) =>
-                                  x.id === n.id ? { ...x, isRead: true } : x
-                                )
-                              );
-                              setUnreadCount((c) => Math.max(0, c - 1));
-                            }
-                            router.push(n.link);
-                          }}
-                        >
-                          View
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+              {items.map((n) => (
+                <div
+                  key={n.id}
+                  className={`w-full rounded-xl border border-[#e5ddd0] px-3 py-3 ${
+                    n.isRead
+                      ? "bg-[#faf6ef]"
+                      : "border-l-4 border-l-[#2d6a4f] bg-[#f0f7f4]"
+                  }`}
+                >
+                  <NotificationItem
+                    notification={n}
+                    onMarkedRead={(id) => {
+                      setAllItems((prev) => {
+                        const target = prev.find((x) => x.id === id);
+                        if (target && !target.isRead) {
+                          setUnreadCount((c) => Math.max(0, c - 1));
+                        }
+                        return prev.map((x) =>
+                          x.id === id ? { ...x, isRead: true } : x
+                        );
+                      });
+                      setNotifications((prev) =>
+                        prev.map((x) =>
+                          x.id === id ? { ...x, isRead: true } : x
+                        )
+                      );
+                    }}
+                    onDismissed={(id) => {
+                      setAllItems((prev) => {
+                        const target = prev.find((x) => x.id === id);
+                        if (target && !target.isRead) {
+                          setUnreadCount((c) => Math.max(0, c - 1));
+                        }
+                        return prev.filter((x) => x.id !== id);
+                      });
+                      setNotifications((prev) => prev.filter((x) => x.id !== id));
+                    }}
+                  />
+                </div>
+              ))}
             </div>
           </div>
         ))}

@@ -9,11 +9,14 @@ export function ConnectionRequestActions({
   connectionId,
   notificationId,
   onDone,
+  onDismiss,
   size = "sm",
 }: {
   connectionId: string;
   notificationId?: string;
   onDone?: (status: "ACCEPTED" | "REJECTED") => void;
+  /** Remove this alert from the list immediately (server also dismisses it). */
+  onDismiss?: () => void;
   size?: "sm" | "default";
 }) {
   const [busy, setBusy] = useState(false);
@@ -32,6 +35,7 @@ export function ConnectionRequestActions({
     try {
       await respondToConnection(connectionId, status);
       await markRead();
+      onDismiss?.();
       toast.success(status === "ACCEPTED" ? "Connected!" : "Request declined");
       onDone?.(status);
     } catch (err) {

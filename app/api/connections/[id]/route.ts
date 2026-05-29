@@ -4,7 +4,10 @@ import { db } from "@/lib/db";
 import { connections } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
 import { connectionActionSchema } from "@/lib/validations";
-import { createNotification } from "@/lib/notifications";
+import {
+  createNotification,
+  dismissConnectionRequestNotifications,
+} from "@/lib/notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +65,11 @@ export async function PATCH(
     if (!updated) {
       return NextResponse.json({ error: "Failed to update connection" }, { status: 500 });
     }
+
+    await dismissConnectionRequestNotifications(
+      connectionId,
+      session.user.id
+    );
 
     if (status === "ACCEPTED") {
       try {

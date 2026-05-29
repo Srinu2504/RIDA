@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { doctorProfiles, notifications, users } from "@/drizzle/schema";
 import { pusherServer } from "@/lib/pusher";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getNotificationText } from "@/lib/notification-text";
 
 interface CreateNotificationParams {
@@ -12,6 +12,35 @@ interface CreateNotificationParams {
   commentId?: string;
   conversationId?: string;
   connectionId?: string;
+}
+
+/** Mark connection-request alerts as read once the request is handled. */
+export async function dismissConnectionRequestNotifications(
+  connectionId: string,
+  recipientId: string
+) {
+  const updated = await db
+    .update(notifications)
+    .set({ isRead: true, readAt: new Date() })
+    .where(
+      and(
+        eq(notifications.connectionId, connectionId),
+        eq(notifications.recipientId, recipientId),
+        eq(notifications.type, "connection_request")
+      )
+    )
+    .returning({ id: notifications.id });
+
+  if (updated.length === 0) return;
+
+  try {
+    await pusherServer.trigger(`user-${recipientId}`, "notifications-read", {
+      notificationId: "connection-handled",
+      connectionId,
+    });
+  } catch (err) {
+    console.error("[dismissConnectionRequestNotifications] Pusher failed:", err);
+  }
 }
 
 export async function createNotification(params: CreateNotificationParams) {

@@ -53,7 +53,9 @@ export function getNotificationLink(notification: NotificationLinkInput): string
     case "comment":
     case "reply":
     case "repost":
-      return notification.postId ? `/posts/${notification.postId}` : "/";
+      return notification.postId
+        ? `/feed?post=${notification.postId}`
+        : "/feed";
     case "connection_request":
     case "connection_accepted":
       return "/connections";
