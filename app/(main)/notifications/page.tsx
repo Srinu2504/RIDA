@@ -8,17 +8,6 @@ import { type AppNotification, useNotifications } from "@/hooks/useNotifications
 
 type Filter = "all" | "unread" | "likes" | "comments" | "connections" | "messages";
 
-function dayLabel(date: string) {
-  const d = new Date(date);
-  const now = new Date();
-  const startNow = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startD = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const diff = (startNow.getTime() - startD.getTime()) / 86400000;
-  if (diff === 0) return "Today";
-  if (diff === 1) return "Yesterday";
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
-
 function isMatch(filter: Filter, n: AppNotification) {
   if (filter === "all") return true;
   if (filter === "unread") return !n.isRead;
@@ -68,15 +57,6 @@ export default function NotificationsPage() {
     [allItems, filter]
   );
 
-  const grouped = useMemo(() => {
-    const map = new Map<string, AppNotification[]>();
-    for (const n of filtered) {
-      const key = dayLabel(n.createdAt);
-      map.set(key, [...(map.get(key) ?? []), n]);
-    }
-    return Array.from(map.entries());
-  }, [filtered]);
-
   return (
     <div className="mx-auto max-w-[840px] px-4 py-5 md:px-6">
       <PageBackHeader
@@ -121,59 +101,52 @@ export default function NotificationsPage() {
         ))}
       </div>
 
-      {grouped.length === 0 && (
+      {filtered.length === 0 && (
         <div className="rida-card flex flex-col items-center gap-2 py-12">
           <Bell className="text-text-muted" size={20} />
           <p className="text-xs text-text-muted">No notifications yet</p>
         </div>
       )}
 
-      <div className="space-y-5">
-        {grouped.map(([group, items]) => (
-          <div key={group}>
-            <p className="mb-2 text-xs font-bold text-text-dark">{group}</p>
-            <div className="space-y-2">
-              {items.map((n) => (
-                <div
-                  key={n.id}
-                  className={`w-full rounded-xl border border-[#e5ddd0] px-3 py-3 ${
-                    n.isRead
-                      ? "bg-[#faf6ef]"
-                      : "border-l-4 border-l-[#2d6a4f] bg-[#f0f7f4]"
-                  }`}
-                >
-                  <NotificationItem
-                    notification={n}
-                    onMarkedRead={(id) => {
-                      setAllItems((prev) => {
-                        const target = prev.find((x) => x.id === id);
-                        if (target && !target.isRead) {
-                          setUnreadCount((c) => Math.max(0, c - 1));
-                        }
-                        return prev.map((x) =>
-                          x.id === id ? { ...x, isRead: true } : x
-                        );
-                      });
-                      setNotifications((prev) =>
-                        prev.map((x) =>
-                          x.id === id ? { ...x, isRead: true } : x
-                        )
-                      );
-                    }}
-                    onDismissed={(id) => {
-                      setAllItems((prev) => {
-                        const target = prev.find((x) => x.id === id);
-                        if (target && !target.isRead) {
-                          setUnreadCount((c) => Math.max(0, c - 1));
-                        }
-                        return prev.filter((x) => x.id !== id);
-                      });
-                      setNotifications((prev) => prev.filter((x) => x.id !== id));
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
+      <div className="space-y-2">
+        {filtered.map((n) => (
+          <div
+            key={n.id}
+            className={`w-full rounded-xl border border-[#e5ddd0] px-3 py-3 ${
+              n.isRead
+                ? "bg-[#faf6ef]"
+                : "border-l-4 border-l-[#2d6a4f] bg-[#f0f7f4]"
+            }`}
+          >
+            <NotificationItem
+              notification={n}
+              onMarkedRead={(id) => {
+                setAllItems((prev) => {
+                  const target = prev.find((x) => x.id === id);
+                  if (target && !target.isRead) {
+                    setUnreadCount((c) => Math.max(0, c - 1));
+                  }
+                  return prev.map((x) =>
+                    x.id === id ? { ...x, isRead: true } : x
+                  );
+                });
+                setNotifications((prev) =>
+                  prev.map((x) =>
+                    x.id === id ? { ...x, isRead: true } : x
+                  )
+                );
+              }}
+              onDismissed={(id) => {
+                setAllItems((prev) => {
+                  const target = prev.find((x) => x.id === id);
+                  if (target && !target.isRead) {
+                    setUnreadCount((c) => Math.max(0, c - 1));
+                  }
+                  return prev.filter((x) => x.id !== id);
+                });
+                setNotifications((prev) => prev.filter((x) => x.id !== id));
+              }}
+            />
           </div>
         ))}
       </div>

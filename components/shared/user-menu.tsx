@@ -87,14 +87,6 @@ export function UserMenu({
           >
             View profile
           </Link>
-          <Link
-            href={profileHref}
-            role="menuitem"
-            className="block border-t border-[#eee] px-4 py-2.5 text-xs text-text-mid hover:bg-[#f3f2ef]"
-            onClick={() => onOpenChange(false)}
-          >
-            Settings
-          </Link>
           <button
             type="button"
             role="menuitem"

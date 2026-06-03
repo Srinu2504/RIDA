@@ -1,6 +1,6 @@
 "use client";
 import { z } from "zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useForm, Controller } from "react-hook-form";
@@ -20,7 +20,9 @@ import {
   formatZodErrors,
 } from "@/lib/validations";
 import { useProfileWizardStore } from "@/lib/stores/profile-wizard-store";
+import { profileToWizardSteps } from "@/lib/profile-wizard-prefill";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,9 +47,10 @@ type Step4 = z.infer<typeof profileStep4Schema>;
 type FullPhysicianProfile = z.infer<typeof doctorProfileSchema>;
 type FullStudentProfile = z.infer<typeof studentDoctorProfileSchema>;
 
-export function ProfileWizard() {
+export function ProfileWizard({ mode = "create" }: { mode?: "create" | "edit" }) {
   const router = useRouter();
   const { data: session, update } = useSession();
+  const isEdit = mode === "edit";
   const isStudent = session?.user?.role === "MEDICAL_STUDENT";
   const stepLabels = isStudent ? STUDENT_STEP_LABELS : PHYSICIAN_STEP_LABELS;
 
@@ -65,9 +68,55 @@ export function ProfileWizard() {
     reset,
   } = useProfileWizardStore();
   const [loading, setLoading] = useState(false);
+  const [hydrating, setHydrating] = useState(isEdit);
   const [photoPreview, setPhotoPreview] = useState(
     (step1.profilePhoto as string) ?? ""
   );
+
+  useEffect(() => {
+    if (!isEdit) return;
+
+    let cancelled = false;
+
+    (async () => {
+      reset();
+      try {
+        const res = await fetch("/api/users/me");
+        const json = await res.json();
+        if (!res.ok || !json.profile) {
+          toast.error(json.error ?? "Could not load profile");
+          router.push("/feed");
+          return;
+        }
+
+        const editIsStudent = json.user?.role === "MEDICAL_STUDENT";
+        const steps = profileToWizardSteps(json.profile, editIsStudent);
+        if (cancelled) return;
+
+        setStep1(steps.step1);
+        setStep2(steps.step2);
+        setStep3(steps.step3);
+        setStep4(steps.step4);
+        setPhotoPreview((steps.step1.profilePhoto as string) ?? "");
+      } catch {
+        if (!cancelled) {
+          toast.error("Failed to load profile");
+          router.push("/feed");
+        }
+      } finally {
+        if (!cancelled) setHydrating(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isEdit, reset, router, setStep1, setStep2, setStep3, setStep4]);
+
+  useEffect(() => {
+    if (!isEdit) return;
+    return () => reset();
+  }, [isEdit, reset]);
 
   const handlePhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -131,8 +180,13 @@ export function ProfileWizard() {
 
       await update({ isProfileComplete: true });
       reset();
-      toast.success("Profile complete!");
-      router.push("/feed");
+      if (isEdit && session?.user?.id) {
+        toast.success("Profile updated!");
+        router.push(`/profile/${session.user.id}`);
+      } else {
+        toast.success("Profile complete!");
+        router.push("/feed");
+      }
       router.refresh();
     } catch {
       toast.error("Failed to save profile");
@@ -186,8 +240,22 @@ export function ProfileWizard() {
     await submitAll(fullPayload);
   };
 
+  if (hydrating) {
+    return (
+      <div className="mx-auto w-full max-w-[560px] px-4 md:px-0">
+        <Skeleton className="h-96 w-full rounded-xl" />
+      </div>
+    );
+  }
+
   return (
-    <div className="mx-auto w-full max-w-[560px]">
+    <div className="mx-auto w-full max-w-[560px] px-4 md:px-0">
+      {isEdit && (
+        <p className="mb-4 text-center text-xs text-text-muted">
+          Update your details below. Changes are saved when you finish the last
+          step.
+        </p>
+      )}
       <div className="mb-6">
         <div className="mb-3 flex justify-between gap-1">
           {stepLabels.map((label, i) => {

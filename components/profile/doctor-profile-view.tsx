@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useUser } from "@/components/shared/user-context";
 import toast from "react-hot-toast";
 import {
@@ -159,6 +160,12 @@ export function DoctorProfileView({ userId }: { userId: string }) {
               </p>
             </div>
           </div>
+
+          {isSelf && (
+            <Button variant="outline" asChild>
+              <Link href="/profile/edit">Edit profile</Link>
+            </Button>
+          )}
 
           {!isSelf && !limited && (
             <div className="flex items-center gap-2">
