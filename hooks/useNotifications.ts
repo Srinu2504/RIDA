@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { getPusherClient } from "@/lib/pusher";
+import { isBellNotification } from "@/lib/notification-text";
 
 export interface AppNotification {
   id: string;
@@ -21,26 +23,38 @@ export interface AppNotification {
 }
 
 export function useNotifications(userId: string) {
+  const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
+
+  const refreshUnreadCount = useCallback(() => {
+    if (!userId) return;
+    fetch("/api/notifications/unread-count")
+      .then((r) => r.json())
+      .then((d) => setUnreadCount(d.count ?? 0))
+      .catch(() => {});
+  }, [userId]);
+
+  useEffect(() => {
+    refreshUnreadCount();
+  }, [refreshUnreadCount, pathname]);
 
   useEffect(() => {
     if (!userId) return;
     const pusherClient = getPusherClient();
     if (!pusherClient) return;
 
-    fetch("/api/notifications/unread-count")
-      .then((r) => r.json())
-      .then((d) => setUnreadCount(d.count ?? 0))
-      .catch(() => {});
-
     const channel = pusherClient.subscribe(`user-${userId}`);
 
     channel.bind(
       "new-notification",
       (data: { notification: AppNotification }) => {
+        if (!isBellNotification(data.notification.type)) {
+          refreshUnreadCount();
+          return;
+        }
         setNotifications((prev) => [data.notification, ...prev]);
-        setUnreadCount((prev) => prev + 1);
+        refreshUnreadCount();
       }
     );
 
@@ -53,48 +67,36 @@ export function useNotifications(userId: string) {
         const { notificationId, connectionId } = payload;
 
         if (notificationId === "connection-handled" && connectionId) {
-          setNotifications((prev) => {
-            const removed = prev.filter(
-              (n) =>
-                n.type === "connection_request" &&
-                n.connectionId === connectionId &&
-                !n.isRead
-            ).length;
-            if (removed > 0) {
-              setUnreadCount((c) => Math.max(0, c - removed));
-            }
-            return prev.filter(
+          setNotifications((prev) =>
+            prev.filter(
               (n) =>
                 !(
                   n.type === "connection_request" &&
                   n.connectionId === connectionId
                 )
-            );
-          });
+            )
+          );
+          refreshUnreadCount();
           return;
         }
 
         if (notificationId === "all") {
-          setUnreadCount(0);
           setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
         } else {
-          setNotifications((prev) => {
-            const target = prev.find((n) => n.id === notificationId);
-            if (target && !target.isRead) {
-              setUnreadCount((c) => Math.max(0, c - 1));
-            }
-            return prev.map((n) =>
+          setNotifications((prev) =>
+            prev.map((n) =>
               n.id === notificationId ? { ...n, isRead: true } : n
-            );
-          });
+            )
+          );
         }
+        refreshUnreadCount();
       }
     );
 
     return () => {
       pusherClient.unsubscribe(`user-${userId}`);
     };
-  }, [userId]);
+  }, [userId, refreshUnreadCount]);
 
   return { unreadCount, notifications, setUnreadCount, setNotifications };
 }

@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { connections, doctorProfiles, notifications, users } from "@/drizzle/schema";
+import { doctorProfiles, notifications, users } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
 import { getNotificationIcon, getNotificationLink, getNotificationText } from "@/lib/notification-text";
+import {
+  countVisibleUnreadNotifications,
+  getPendingConnectionIds,
+  isVisibleNotification,
+  markMessageNotificationsAsRead,
+  markStaleConnectionRequestNotificationsAsRead,
+} from "@/lib/notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -36,15 +43,18 @@ export async function GET(req: Request) {
       .from(notifications)
       .innerJoin(users, eq(users.id, notifications.actorId))
       .leftJoin(doctorProfiles, eq(doctorProfiles.userId, notifications.actorId))
-      .where(eq(notifications.recipientId, userId))
+      .where(
+        and(
+          eq(notifications.recipientId, userId),
+          ne(notifications.type, "message")
+        )
+      )
       .orderBy(desc(notifications.createdAt))
       .limit(limit + 1)
       .offset(offset);
 
-    const unreadCountRow = await db
-      .select({ count: sql<number>`count(*)`.mapWith(Number) })
-      .from(notifications)
-      .where(and(eq(notifications.recipientId, userId), eq(notifications.isRead, false)));
+    await markStaleConnectionRequestNotificationsAsRead(userId);
+    await markMessageNotificationsAsRead(userId);
 
     const hasMore = items.length > limit;
     const pageItems = hasMore ? items.slice(0, limit) : items;
@@ -53,21 +63,15 @@ export async function GET(req: Request) {
       .filter((i) => i.type === "connection_request" && i.connectionId)
       .map((i) => i.connectionId as string);
 
-    const pendingConnectionIds = new Set<string>();
-    if (requestConnectionIds.length > 0) {
-      const rows = await db
-        .select({ id: connections.id, status: connections.status })
-        .from(connections)
-        .where(inArray(connections.id, requestConnectionIds));
-      for (const row of rows) {
-        if (row.status === "PENDING") pendingConnectionIds.add(row.id);
-      }
-    }
+    const pendingConnectionIds = await getPendingConnectionIds(
+      requestConnectionIds
+    );
 
-    const visibleItems = pageItems.filter((item) => {
-      if (item.type !== "connection_request" || !item.connectionId) return true;
-      return pendingConnectionIds.has(item.connectionId);
-    });
+    const visibleItems = pageItems.filter((item) =>
+      isVisibleNotification(item, pendingConnectionIds)
+    );
+
+    const unreadCount = await countVisibleUnreadNotifications(userId);
 
     return NextResponse.json({
       notifications: visibleItems.map((item) => ({
@@ -82,7 +86,7 @@ export async function GET(req: Request) {
         icon: getNotificationIcon(item.type),
         link: getNotificationLink(item),
       })),
-      unreadCount: unreadCountRow[0]?.count ?? 0,
+      unreadCount,
       hasMore,
     });
   } catch {

@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { conversations, messages } from "@/drizzle/schema";
 import { requireSession } from "@/lib/session";
 import { pusherServer } from "@/lib/pusher";
-import { createNotification } from "@/lib/notifications";
-
 export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
@@ -41,18 +39,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const [existingUnreadFromSender] = await db
-      .select({ id: messages.id })
-      .from(messages)
-      .where(
-        and(
-          eq(messages.conversationId, conversationId),
-          eq(messages.senderId, userId),
-          eq(messages.isRead, false)
-        )
-      )
-      .limit(1);
-
     const [msg] = await db
       .insert(messages)
       .values({
@@ -76,15 +62,6 @@ export async function POST(req: Request) {
     await pusherServer.trigger(`user-${otherId}`, "unread-update", {
       conversationId,
     });
-    if (!existingUnreadFromSender) {
-      await createNotification({
-        recipientId: otherId,
-        actorId: userId,
-        type: "message",
-        conversationId,
-      });
-    }
-
     return NextResponse.json({ message: msg });
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

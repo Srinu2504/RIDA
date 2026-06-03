@@ -82,14 +82,26 @@ export default function MessagesPage() {
     loadMessages(activeConversationId).catch(() =>
       toast.error("Failed to load messages")
     );
-    markRead(activeConversationId);
   }, [activeConversationId]);
+
+  useEffect(() => {
+    if (!activeConversationId || loadingMessages) return;
+    markRead(activeConversationId);
+  }, [activeConversationId, loadingMessages]);
 
   useConversation(activeConversationId ?? "", {
     onNewMessage: (msg) => {
-      setMessages((m) => [...m, msg]);
+      setMessages((m) =>
+        m.some((x) => x.id === msg.id) ? m : [...m, msg]
+      );
       loadConversations().catch(() => {});
-      if (msg.senderId !== userId) markRead(msg.conversationId);
+      if (
+        msg.senderId !== userId &&
+        activeConversationId === msg.conversationId &&
+        !loadingMessages
+      ) {
+        markRead(msg.conversationId);
+      }
     },
     onMessagesRead: (readBy) => {
       if (readBy === userId) return;
@@ -118,8 +130,11 @@ export default function MessagesPage() {
       toast.error(json.error ?? "Failed to send");
       return;
     }
-    // Optimistic update happens via Pusher; add fallback just in case.
-    if (json.message?.id) setMessages((m) => [...m, json.message]);
+    if (json.message?.id) {
+      setMessages((m) =>
+        m.some((x) => x.id === json.message.id) ? m : [...m, json.message]
+      );
+    }
     loadConversations().catch(() => {});
   };
 

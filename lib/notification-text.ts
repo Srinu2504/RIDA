@@ -4,6 +4,15 @@ export interface NotificationLinkInput {
   conversationId?: string | null;
 }
 
+/** Shown in messaging UI only — not the bell notifications list or badge. */
+export const BELL_EXCLUDED_NOTIFICATION_TYPES = ["message"] as const;
+
+export function isBellNotification(type: string): boolean {
+  return !BELL_EXCLUDED_NOTIFICATION_TYPES.includes(
+    type as (typeof BELL_EXCLUDED_NOTIFICATION_TYPES)[number]
+  );
+}
+
 export function getNotificationText(type: string, actorName: string): string {
   const name = actorName || "Someone";
   switch (type) {

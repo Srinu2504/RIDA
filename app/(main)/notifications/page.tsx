@@ -6,7 +6,7 @@ import { PageBackHeader } from "@/components/shared/page-back-header";
 import { NotificationItem } from "@/components/notifications/notification-item";
 import { type AppNotification, useNotifications } from "@/hooks/useNotifications";
 
-type Filter = "all" | "unread" | "likes" | "comments" | "connections" | "messages";
+type Filter = "all" | "unread" | "likes" | "comments" | "connections";
 
 function isMatch(filter: Filter, n: AppNotification) {
   if (filter === "all") return true;
@@ -15,7 +15,6 @@ function isMatch(filter: Filter, n: AppNotification) {
   if (filter === "comments") return n.type === "comment" || n.type === "reply";
   if (filter === "connections")
     return n.type === "connection_request" || n.type === "connection_accepted";
-  if (filter === "messages") return n.type === "message";
   return true;
 }
 
@@ -84,7 +83,6 @@ export default function NotificationsPage() {
           ["likes", "Likes"],
           ["comments", "Comments"],
           ["connections", "Connections"],
-          ["messages", "Messages"],
         ].map(([id, label]) => (
           <button
             key={id}

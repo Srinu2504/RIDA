@@ -109,14 +109,25 @@ export function MessagingMascot() {
     loadMessages(activeConversationId).catch(() =>
       toast.error("Failed to load messages")
     );
+  }, [activeConversationId, widgetOpen, loadMessages]);
+
+  useEffect(() => {
+    if (!activeConversationId || !widgetOpen || loadingMessages) return;
     markRead(activeConversationId);
-  }, [activeConversationId, widgetOpen, loadMessages, markRead]);
+  }, [activeConversationId, widgetOpen, loadingMessages, markRead]);
 
   useConversation(activeConversationId ?? "", {
     onNewMessage: (msg) => {
-      setMessages((m) => [...m, msg]);
+      setMessages((m) =>
+        m.some((x) => x.id === msg.id) ? m : [...m, msg]
+      );
       loadConversations().catch(() => {});
-      if (msg.senderId !== userId && widgetOpen) {
+      if (
+        msg.senderId !== userId &&
+        widgetOpen &&
+        activeConversationId === msg.conversationId &&
+        !loadingMessages
+      ) {
         markRead(msg.conversationId);
       }
     },
@@ -149,12 +160,18 @@ export function MessagingMascot() {
       toast.error(json.error ?? "Failed to send");
       return;
     }
-    if (json.message?.id) setMessages((m) => [...m, json.message]);
+    if (json.message?.id) {
+      setMessages((m) =>
+        m.some((x) => x.id === json.message.id) ? m : [...m, json.message]
+      );
+    }
     loadConversations().catch(() => {});
   };
 
   const closePanel = () => {
     setPanelVisible(false);
+    setActiveConversationId(null);
+    setMessages([]);
     setTimeout(() => setWidgetOpen(false), 280);
   };
 
@@ -300,7 +317,7 @@ export function MessagingMascot() {
         <span
           className={cn(
             "rida-mascot-glow relative block transition-shadow duration-300",
-            hasUnread && !widgetOpen
+            hasUnread
               ? "rida-mascot-glow--active shadow-[0_0_0_4px_#2d6a4f,0_8px_28px_rgba(45,106,79,0.4)]"
               : "drop-shadow-[0_6px_14px_rgba(0,0,0,0.14)]"
           )}
@@ -316,7 +333,7 @@ export function MessagingMascot() {
             />
           </span>
 
-          {hasUnread && !widgetOpen && (
+          {hasUnread && (
             <span className="absolute right-0 top-0 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-green-primary px-0.5 text-[9px] font-bold text-white shadow-sm">
               {totalUnread > 99 ? "99+" : totalUnread}
             </span>
